@@ -30,7 +30,7 @@ export const ASSISTANTS: Assistant[] = [
     id: "1",
     name: "西村",
     displayName: "西村",
-    color: "bg-green-500",
+    color: "bg-purple-500",
     character: `
       - 年齢: 33歳
       - 性別: 女性
