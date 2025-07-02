@@ -2,6 +2,7 @@
 
 import { ScrollArea } from "@/components/ui/scroll-area"
 import type { Assistant, ConversationLog } from "@/types/chat"
+import Image from "next/image"
 
 interface ChatMessagesProps {
   conversationLog: ConversationLog[]
@@ -18,8 +19,8 @@ export function ChatMessages({ conversationLog, assistants, isReflecting }: Chat
             <div key={index} className="flex gap-3">
               {log.role === "user" ? (
                 <div className="flex gap-3 w-full">
-                  <div className="w-8 h-8 bg-gray-400 rounded-full flex items-center justify-center text-white text-sm font-medium">
-                    あ
+                  <div className="w-8 h-8 flex items-center justify-center">
+                    <Image src="user.png" width={100} height={100} alt="user"></Image>
                   </div>
                   <div className="flex-1">
                     <div className="text-sm text-gray-600 mb-1">あなた</div>
@@ -35,9 +36,9 @@ export function ChatMessages({ conversationLog, assistants, isReflecting }: Chat
               ) : (
                 <div className="flex gap-3 w-full">
                   <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium ${log.speaker?.color || "bg-gray-400"}`}
+                    className="w-8 h-8 flex items-center justify-center"
                   >
-                    {log.speaker?.name.charAt(0) || "A"}
+                    <Image src={"./" + log.speaker?.id + ".png"} width={100} height={100} alt={String(index)}></Image>
                   </div>
                   <div className="flex-1">
                     <div className="text-sm text-gray-600 mb-1">{log.speaker?.name || "アシスタント"}</div>
