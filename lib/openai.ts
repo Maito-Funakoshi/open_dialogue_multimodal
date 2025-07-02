@@ -23,9 +23,18 @@ const CHARACTERS = {
     [ASSISTANTS[2].name]: ASSISTANTS[2].character,
 };
 
-const CHAT_PROMPT = `
+// 動的なSITUATIONを生成する関数
+function createSituation(userName: string, userGender: string): string {
+    return `オープンダイアローグが行われる場所
+${userName}さんは${userGender}のクライアントで${ASSISTANTS[0].name}、${ASSISTANTS[1].name}、${ASSISTANTS[2].name}はアシスタント`;
+}
+
+// 動的なCHAT_PROMPTを生成する関数
+function createChatPrompt(userName: string, userGender: string): string {
+    const situation = createSituation(userName, userGender);
+    return `
     ## 対話場面や状況設定
-    ${SITUATION}
+    ${situation}
 
     ## 形式の条件
     - 1個以上10個以下の発言を含む会話のやり取りを以下の形式で出力して下さい。
@@ -42,15 +51,19 @@ const CHAT_PROMPT = `
     ## 内容の条件
     - 1クライアント対3アシスタントという構図ではなく4人が皆対等な立場に立った対話を心がけて下さい。
     - 最後の話者以外は絶対にクライアントに質問しないで下さい。なぜならあるアシスタントがクライアントに質問を投げかけた直後に他のアシスタントがクライアントの応答を遮って話し始めるのは不自然だからです。
-    - 出力に対して返答するのは${USER}だけなので、また${USER}以外に質問を投げかけて出力を終了するのは絶対やめて下さい。
+    - 出力に対して返答するのは${userName}だけなので、また${userName}以外に質問を投げかけて出力を終了するのは絶対やめて下さい。
     - 複数人が発話する場合はアシスタント同士の対話を心がけて下さい。
     - 心中語は出力せずに発言内容だけを出力するようにして下さい。
     - ${WORDINGS_PROMPT}
 `;
+}
 
-const REFLECTING_PROMPT = `
+// 動的なREFLECTING_PROMPTを生成する関数
+function createReflectingPrompt(userName: string, userGender: string): string {
+    const situation = createSituation(userName, userGender);
+    return `
     ## 対話場面や状況設定
-    ${SITUATION}
+    ${situation}
     - アシスタントの${ASSISTANTS.length}人はまるでクライアントがその場にはいないかの如く会話を行います。
     - アシスタントたちはクライアントの話を元に、他のアシスタントに自身の意見を発信します。
     - クライアントはアシスタントたちの会話を側から聞くだけで、応答したりはしません。
@@ -74,6 +87,7 @@ const REFLECTING_PROMPT = `
     - 心中語は出力せずに発言内容だけを出力するようにして下さい。
     - ${WORDINGS_PROMPT}
 `;
+}
 
 // 名前インデックスから名前を取得する関数
 function getNameFromIndex(val: string): string {
@@ -218,7 +232,9 @@ async function updateLog(
 export async function generateOpenAIResponse(
     userInput: string,
     conversationLog: ConversationLog[],
-    isReflecting: boolean = false
+    isReflecting: boolean = false,
+    userName: string = USER,
+    userGender: string = GENDER
 ): Promise<string> {
     const client = new AzureOpenAI({
         apiKey: AZURE_OPENAI_API_KEY,
@@ -232,11 +248,11 @@ export async function generateOpenAIResponse(
 
     // チャットモードをデフォルトで設定
     let count = 1;
-    let prompt = CHAT_PROMPT;
+    let prompt = createChatPrompt(userName, userGender);
     
     if (isReflecting) {
         count = REFLECTING_CONVERSATION_COUNT;
-        prompt = REFLECTING_PROMPT;
+        prompt = createReflectingPrompt(userName, userGender);
     }
 
     // ConversationLogを適切な形式に変換

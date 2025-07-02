@@ -8,11 +8,11 @@ interface AssistantAvatarsProps {
 
 export function AssistantAvatars({ assistants }: AssistantAvatarsProps) {
   return (
-    <div className="flex gap-8 justify-center">
+    <div className="flex gap-24 justify-center">
       {assistants.map((assistant) => (
         <div key={assistant.id} className="flex flex-col items-center">
           <div
-            className={`w-24 h-24 rounded-full ${assistant.color} flex items-center justify-center text-white text-2xl font-bold shadow-lg`}
+            className={`w-48 h-48 rounded-full ${assistant.color} flex items-center justify-center text-white text-6xl font-bold shadow-lg`}
           >
             {assistant.name.charAt(0)}
           </div>

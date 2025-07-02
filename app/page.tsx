@@ -1,12 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { SidebarProvider } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
 import { HomeView } from "@/components/home-view"
 import { ChatView } from "@/components/chat-view"
+import { SettingsView } from "@/components/settings-view"
 import type { ConversationLog } from "@/types/chat"
-import { ASSISTANTS, SITUATION } from "@/lib/config"
+import { ASSISTANTS, USER, GENDER } from "@/lib/config"
 import { MessageInput } from "@/components/message-input"
 
 export default function Home() {
@@ -18,6 +19,18 @@ export default function Home() {
   const [isReflecting, setIsReflecting] = useState(false)
   const [isReady, setIsReady] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  
+  // User settings state
+  const [userName, setUserName] = useState<string>(USER)
+  const [userGender, setUserGender] = useState<string>(GENDER)
+
+  const genderscript = userGender != "未回答" ? `${userGender}の` : ""
+
+  // Dynamic situation based on user settings
+  const situation = useMemo(() => {
+    return `オープンダイアローグが行われる場所
+${userName}さんは${genderscript}クライアントで${ASSISTANTS[0].name}、${ASSISTANTS[1].name}、${ASSISTANTS[2].name}はアシスタント`
+  }, [userName, userGender])
 
   return (
     <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen}>
@@ -27,7 +40,7 @@ export default function Home() {
           {currentView === "home" && (
             <HomeView
               assistants={ASSISTANTS}
-              situation={SITUATION}
+              situation={situation}
               isReady={isReady}
               setIsReady={setIsReady}
               conversationLog={conversationLog}
@@ -47,7 +60,7 @@ export default function Home() {
           {currentView === "chat" && (
             <ChatView
               assistants={ASSISTANTS}
-              situation={SITUATION}
+              situation={situation}
               conversationLog={conversationLog}
               setConversationLog={setConversationLog}
               latestResponse={latestResponse}
@@ -65,25 +78,34 @@ export default function Home() {
             />
           )}
           {currentView === "settings" && (
-            <div className="flex flex-col items-center justify-center h-[84vh]">
-              <div className="text-gray-500 text-lg">設定画面（準備中）</div>
-            </div>
+            <SettingsView
+              sidebarOpen={sidebarOpen}
+              setSidebarOpen={setSidebarOpen}
+              userName={userName}
+              setUserName={setUserName}
+              userGender={userGender}
+              setUserGender={setUserGender}
+            />
           )}
-          {/* Input Area */}
-          <MessageInput
-            conversationLog={conversationLog}
-            setConversationLog={setConversationLog}
-            setLatestResponse={setLatestResponse}
-            setIsReflecting={setIsReflecting}
-            isReady={isReady}
-            setIsReady={setIsReady}
-            assistants={ASSISTANTS}
-            isRecording={isRecording}
-            setIsRecording={setIsRecording}
-            recognition={recognition}
-            setRecognition={setRecognition}
-            placeholder={isRecording ? "音声を認識中..." : "メッセージを入力してください..."}
-          />
+          {/* Input Area - Hide on settings page */}
+          {currentView !== "settings" && (
+            <MessageInput
+              conversationLog={conversationLog}
+              setConversationLog={setConversationLog}
+              setLatestResponse={setLatestResponse}
+              setIsReflecting={setIsReflecting}
+              isReady={isReady}
+              setIsReady={setIsReady}
+              assistants={ASSISTANTS}
+              isRecording={isRecording}
+              setIsRecording={setIsRecording}
+              recognition={recognition}
+              setRecognition={setRecognition}
+              placeholder={isRecording ? "音声を認識中..." : "メッセージを入力してください..."}
+              userName={userName}
+              userGender={userGender}
+            />
+          )}
         </main>
       </div>
     </SidebarProvider>

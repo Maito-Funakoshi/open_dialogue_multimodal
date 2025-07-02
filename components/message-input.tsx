@@ -28,6 +28,8 @@ interface MessageInputProps {
   recognition: any
   setRecognition: (recognition: any) => void
   placeholder?: string
+  userName: string
+  userGender: string
 }
 
 declare global {
@@ -49,7 +51,9 @@ export function MessageInput({
   setIsRecording,
   recognition,
   setRecognition,
-  placeholder = "メッセージを入力してください..."
+  placeholder = "メッセージを入力してください...",
+  userName,
+  userGender
 }: MessageInputProps) {
   const [message, setMessage] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -114,7 +118,7 @@ export function MessageInput({
       }
 
       // Call OpenAI API to generate assistant responses
-      const response = await generateOpenAIResponse(message, newLog, shouldReflect)
+      const response = await generateOpenAIResponse(message, newLog, shouldReflect, userName, userGender)
 
       // Parse and add assistant responses
       const assistantMessages = parseAssistantResponse(response, assistants)
@@ -190,7 +194,7 @@ export function MessageInput({
       setConversationLog(newLog)
 
       // Call OpenAI API to generate assistant responses
-      const response = await generateOpenAIResponse(reflectingMessage, newLog, true)
+      const response = await generateOpenAIResponse(reflectingMessage, newLog, true, userName, userGender)
 
       // Parse and add assistant responses
       const assistantMessages = parseAssistantResponse(response, assistants)
