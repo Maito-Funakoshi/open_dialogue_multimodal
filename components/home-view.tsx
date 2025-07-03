@@ -5,6 +5,7 @@ import { useRef } from "react"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import type { Assistant, ConversationLog } from "@/types/chat"
 import { AssistantAvatars } from "@/components/assistant-avatars"
+import { Activity, Check, Loader } from "lucide-react"
 
 interface HomeViewProps {
   assistants: Assistant[]
@@ -69,13 +70,31 @@ export function HomeView({
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-8">
-        <AssistantAvatars 
-          assistants={assistants} 
+        <AssistantAvatars
+          assistants={assistants}
           currentSpeakingAssistant={currentSpeakingAssistant}
         />
 
-        <div className="mt-6 md:mt-8 mb-6 md:mb-8 text-center text-gray-600 text-sm md:text-base">
-          {isRecording ? "録音中..." : isReady ? "準備完了" : "処理中..."}
+        <div className={`mt-6 md:mt-8 mb-6 md:mb-8 text-center text-sm md:text-2xl ${isRecording ? "text-red-500" : isReady ? "text-green-500" : "text-blue-500"}`}>
+          {/* {isRecording ? "🎙️録音中..." : isReady ? "📢準備完了" : "処理中..."} */}
+          {isRecording ? (
+            <div className="flex gap-1">
+              <Activity className="size-auto" />
+              <div>録音中...</div>
+            </div>
+          ) : isReady ? (
+            <div className="flex gap-1">
+              <Check className="size-auto" />
+              <div>準備完了！</div>
+            </div>
+          ) : (
+            <div className="flex gap-1">
+              <Loader className="size-auto" />
+              <div>処理中...</div>
+            </div>
+          )
+          }
+
         </div>
       </div>
     </div>
