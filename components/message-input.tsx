@@ -30,6 +30,7 @@ interface MessageInputProps {
   placeholder?: string
   userName: string
   userGender: string
+  setCurrentSpeakingAssistant?: (assistantId: string | null) => void
 }
 
 declare global {
@@ -53,7 +54,8 @@ export function MessageInput({
   setRecognition,
   placeholder = "メッセージを入力してください...",
   userName,
-  userGender
+  userGender,
+  setCurrentSpeakingAssistant
 }: MessageInputProps) {
   const [message, setMessage] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -133,7 +135,11 @@ export function MessageInput({
       setLatestResponse(response)
 
       // 音声再生を実行（非同期で実行し、エラーがあっても処理を継続）
-      safePlayAssistantMessages(assistantMessages)
+      safePlayAssistantMessages(
+        assistantMessages,
+        (assistantId) => setCurrentSpeakingAssistant?.(assistantId),
+        (assistantId) => setCurrentSpeakingAssistant?.(null)
+      )
     } catch (error) {
       console.error("Error generating response:", error)
     } finally {
@@ -207,7 +213,11 @@ export function MessageInput({
       setLatestResponse(response)
 
       // 音声再生を実行（非同期で実行し、エラーがあっても処理を継続）
-      safePlayAssistantMessages(assistantMessages)
+      safePlayAssistantMessages(
+        assistantMessages,
+        (assistantId) => setCurrentSpeakingAssistant?.(assistantId),
+        (assistantId) => setCurrentSpeakingAssistant?.(null)
+      )
     } catch (error) {
       console.error("Error generating response:", error)
     } finally {

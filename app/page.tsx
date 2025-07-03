@@ -19,6 +19,7 @@ export default function Home() {
   const [isReflecting, setIsReflecting] = useState(false)
   const [isReady, setIsReady] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [currentSpeakingAssistant, setCurrentSpeakingAssistant] = useState<string | null>(null)
   
   // User settings state
   const [userName, setUserName] = useState<string>(USER)
@@ -55,6 +56,8 @@ ${userName}さんは${genderscript}クライアントで${ASSISTANTS[0].name}、
               setIsRecording={setIsRecording}
               recognition={recognition}
               setRecognition={setRecognition}
+              currentSpeakingAssistant={currentSpeakingAssistant}
+              setCurrentSpeakingAssistant={setCurrentSpeakingAssistant}
             />
           )}
           {currentView === "chat" && (
@@ -104,6 +107,7 @@ ${userName}さんは${genderscript}クライアントで${ASSISTANTS[0].name}、
               placeholder={isRecording ? "音声を認識中..." : "メッセージを入力してください..."}
               userName={userName}
               userGender={userGender}
+              setCurrentSpeakingAssistant={setCurrentSpeakingAssistant}
             />
           )}
         </main>

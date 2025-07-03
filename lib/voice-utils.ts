@@ -18,7 +18,12 @@ export const getSpeakerIdByAssistant = (assistantName: string): number => {
 }
 
 // VOICEVOX APIを使用して音声を再生する関数
-export const playVoiceWithVOICEVOX = async (text: string, speakerId: number): Promise<void> => {
+export const playVoiceWithVOICEVOX = async (
+  text: string, 
+  speakerId: number, 
+  onStart?: () => void, 
+  onEnd?: () => void
+): Promise<void> => {
   try {
     // 成功例に基づいたURL構築
     const audioUrl = `https://deprecatedapis.tts.quest/v2/voicevox/audio/?key=${VOICEVOX_API_KEY}&speaker=${speakerId}&pitch=0&intonationScale=1&speed=1.25&text=${encodeURIComponent(text)}`
@@ -30,6 +35,7 @@ export const playVoiceWithVOICEVOX = async (text: string, speakerId: number): Pr
         audio.play()
           .then(() => {
             console.log(`Playing voice for speaker ${speakerId}: ${text}`)
+            onStart?.() // コールバック実行
           })
           .catch((error) => {
             console.error('音声の再生に失敗しました:', error)
@@ -41,6 +47,7 @@ export const playVoiceWithVOICEVOX = async (text: string, speakerId: number): Pr
         audio.removeEventListener('canplaythrough', handleCanPlayThrough)
         audio.removeEventListener('ended', handleEnded)
         audio.removeEventListener('error', handleError)
+        onEnd?.() // コールバック実行
         resolve()
       }
 
@@ -49,6 +56,7 @@ export const playVoiceWithVOICEVOX = async (text: string, speakerId: number): Pr
         audio.removeEventListener('ended', handleEnded)
         audio.removeEventListener('error', handleError)
         console.error('Audio error:', error)
+        onEnd?.() // エラー時もコールバック実行
         reject(new Error('Audio playback failed'))
       }
 
@@ -66,24 +74,38 @@ export const playVoiceWithVOICEVOX = async (text: string, speakerId: number): Pr
 }
 
 // 複数のメッセージを順次音声再生する関数
-export const playAssistantMessages = async (messages: ConversationLog[]): Promise<void> => {
+export const playAssistantMessages = async (
+  messages: ConversationLog[], 
+  onSpeakerStart?: (assistantId: string) => void,
+  onSpeakerEnd?: (assistantId: string) => void
+): Promise<void> => {
   for (const message of messages) {
     if (message.role === 'assistant' && message.speaker && message.content) {
       try {
         const speakerId = getSpeakerIdByAssistant(message.speaker.name)
-        await playVoiceWithVOICEVOX(message.content, speakerId)
+        await playVoiceWithVOICEVOX(
+          message.content, 
+          speakerId,
+          () => onSpeakerStart?.(message.speaker!.id),
+          () => onSpeakerEnd?.(message.speaker!.id)
+        )
       } catch (error) {
         console.error(`Failed to play voice for ${message.speaker.name}:`, error)
         // Continue with next message even if one fails
+        onSpeakerEnd?.(message.speaker.id)
       }
     }
   }
 }
 
 // 音声再生を安全に実行する関数（エラーハンドリング付き）
-export const safePlayAssistantMessages = (messages: ConversationLog[]): void => {
+export const safePlayAssistantMessages = (
+  messages: ConversationLog[],
+  onSpeakerStart?: (assistantId: string) => void,
+  onSpeakerEnd?: (assistantId: string) => void
+): void => {
   if (messages.length > 0) {
-    playAssistantMessages(messages).catch((error) => {
+    playAssistantMessages(messages, onSpeakerStart, onSpeakerEnd).catch((error) => {
       console.error("Voice playback failed:", error)
     })
   }

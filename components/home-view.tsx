@@ -24,6 +24,8 @@ interface HomeViewProps {
   setIsRecording: (recording: boolean) => void
   recognition: any
   setRecognition: (recognition: any) => void
+  currentSpeakingAssistant?: string | null
+  setCurrentSpeakingAssistant?: (assistantId: string | null) => void
 }
 
 declare global {
@@ -50,7 +52,9 @@ export function HomeView({
   isRecording,
   setIsRecording,
   recognition,
-  setRecognition
+  setRecognition,
+  currentSpeakingAssistant,
+  setCurrentSpeakingAssistant
 }: HomeViewProps) {
   const sidebarRef = useRef<HTMLDivElement>(null)
 
@@ -72,7 +76,10 @@ export function HomeView({
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col items-center justify-center p-8">
-        <AssistantAvatars assistants={assistants} />
+        <AssistantAvatars 
+          assistants={assistants} 
+          currentSpeakingAssistant={currentSpeakingAssistant}
+        />
 
         <div className="mt-8 mb-8 text-center text-gray-600 mb-6">
           {isRecording ? "録音中..." : isReady ? "準備完了" : "処理中..."}
