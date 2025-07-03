@@ -3,7 +3,7 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: 'Open Dialogue Multimodal Chatbot Web App',
-  description: 'Created with v0',
+  description: 'マルチモーダルで3人のボットと対話できるWebアプリ',
   generator: 'v0.dev',
   icons: {
     icon: [
