@@ -66,7 +66,6 @@ ${userName}さんは${genderscript}クライアントで${ASSISTANTS[0].name}、
 
   // Custom setConversationLog function that also saves to localStorage
   const updateConversationLog = (newLog: ConversationLog[]) => {
-    console.log("newLog: ", newLog)
     setConversationLog(newLog)
     
     // Save to localStorage
