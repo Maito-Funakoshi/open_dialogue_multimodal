@@ -113,16 +113,15 @@ export function AppSidebar({ assistants, currentView, setCurrentView, sidebarOpe
           <SidebarGroupLabel className="text-gray-500 text-sm font-semibold px-4 py-2">
             キャラクター設定
           </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <div className="px-4 py-1">
+          <SidebarGroupContent className="p-0">
+            <div className="px-1 py-1">
               {assistants.map((assistant) => (
-                <div key={assistant.id}
-                     className="mb-4 p-3 rounded-md cursor-pointer"> {/* ホバー時に背景色がわずかに明るくなる */}
+                <div key={assistant.id} className="mb-4 p-1 rounded-md cursor-pointer">
                   <div className="flex items-center gap-3 mb-2">
-                    <User className="w-4 h-4 text-gray-500" /> {/* アイコンはグレー */}
-                    <span className="text-gray-800 font-medium text-base">{assistant.name}</span>
+                    <User className="w-4 h-4 text-gray-500" />
+                    <span className="text-gray-800 font-medium text-sm md:text-base">{assistant.name}</span>
                   </div>
-                  <div className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">
+                  <div className="text-sm md:text-base text-gray-600 leading-relaxed whitespace-pre-line">
                     {assistant.character.trim().split("\n").slice(0, 4).join("\n")}
                     {assistant.character.trim().split("\n").length > 4 && "..."}
                   </div>

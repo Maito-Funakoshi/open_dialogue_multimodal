@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { SidebarTrigger } from "@/components/ui/sidebar"
-import { Save, User, Users, Trash2 } from "lucide-react"
+import { Save, User, Users, Trash2, Database, UserPen } from "lucide-react"
 import { CONVERSATION_LOG_KEY } from "@/lib/config"
 
 
@@ -52,7 +52,7 @@ export function SettingsView({
 
     setUserName(tempUserName.trim())
     setUserGender(tempUserGender)
-    
+
     alert("設定を保存しました")
   }
 
@@ -88,16 +88,34 @@ export function SettingsView({
       {/* Settings Content */}
       <div className="flex-1 overflow-auto p-3 md:p-6">
         <div className="max-w-2xl mx-auto space-y-6 md:space-y-8">
+          {/* Current Settings Display */}
+          <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6 shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <User className="w-5 h-5 text-green-500" />
+              <h2 className="text-base md:text-lg font-semibold text-gray-800">現在の設定</h2>
+            </div>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                <span className="text-sm text-gray-600">お名前:</span>
+                <span className="text-sm font-medium text-gray-800">{userName}</span>
+              </div>
+              <div className="flex justify-between items-center py-2">
+                <span className="text-sm text-gray-600">性別:</span>
+                <span className="text-sm font-medium text-gray-800">{userGender}</span>
+              </div>
+            </div>
+          </div>
+
           {/* User Profile Settings */}
           <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6 shadow-sm">
             <div className="flex items-center gap-2 mb-4">
-              <User className="w-5 h-5 text-blue-500" />
+              <UserPen className="w-5 h-5 text-blue-500" />
               <h2 className="text-base md:text-lg font-semibold text-gray-800">ユーザープロフィール</h2>
             </div>
             <p className="text-xs md:text-sm text-gray-600 mb-4 md:mb-6">
               あなたの基本情報を設定してください。この情報はアシスタントとの会話で使用されます。
             </p>
-            
+
             <div className="space-y-6">
               {/* Name Input */}
               <div className="space-y-2">
@@ -155,54 +173,6 @@ export function SettingsView({
             </div>
           </div>
 
-          {/* Current Settings Display */}
-          <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6 shadow-sm">
-            <div className="flex items-center gap-2 mb-4">
-              <Users className="w-5 h-5 text-green-500" />
-              <h2 className="text-base md:text-lg font-semibold text-gray-800">現在の設定</h2>
-            </div>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                <span className="text-sm text-gray-600">お名前:</span>
-                <span className="text-sm font-medium text-gray-800">{userName}</span>
-              </div>
-              <div className="flex justify-between items-center py-2">
-                <span className="text-sm text-gray-600">性別:</span>
-                <span className="text-sm font-medium text-gray-800">{userGender}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Data Management */}
-          <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6 shadow-sm">
-            <div className="flex items-center gap-2 mb-4">
-              <Trash2 className="w-5 h-5 text-red-500" />
-              <h2 className="text-base md:text-lg font-semibold text-gray-800">データ管理</h2>
-            </div>
-            <p className="text-xs md:text-sm text-gray-600 mb-4 md:mb-6">
-              保存されたデータを管理できます。削除したデータは復元できませんのでご注意ください。
-            </p>
-            
-            <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-                <div>
-                  <h3 className="text-sm font-medium text-gray-800">対話履歴の削除</h3>
-                  <p className="text-xs text-gray-600 mt-1">
-                    これまでの全ての対話履歴を削除します
-                  </p>
-                </div>
-                <Button
-                  variant="destructive"
-                  onClick={handleClearConversationHistory}
-                  className="px-4 md:px-6 w-full sm:w-auto"
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  履歴を削除
-                </Button>
-              </div>
-            </div>
-          </div>
-
           {/* Action Buttons */}
           {hasChanges && (
             <div className="flex flex-col sm:flex-row gap-3 justify-end">
@@ -222,6 +192,36 @@ export function SettingsView({
               </Button>
             </div>
           )}
+
+          {/* Data Management */}
+          <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6 shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <Database className="w-5 h-5 text-red-500" />
+              <h2 className="text-base md:text-lg font-semibold text-gray-800">データ管理</h2>
+            </div>
+            <p className="text-xs md:text-sm text-gray-600 mb-4 md:mb-6">
+              保存されたデータを管理できます。削除したデータは復元できませんのでご注意ください。
+            </p>
+
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <div>
+                  <h3 className="text-sm font-medium text-gray-800">対話履歴の削除</h3>
+                  <p className="text-xs text-gray-600 mt-1">
+                    これまでの全ての対話履歴を削除します
+                  </p>
+                </div>
+                <Button
+                  variant="destructive"
+                  onClick={handleClearConversationHistory}
+                  className="px-4 md:px-6 w-full sm:w-auto"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  履歴を削除
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
