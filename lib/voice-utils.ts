@@ -19,19 +19,19 @@ export const getSpeakerIdByAssistant = (assistantName: string): number => {
 
 // VOICEVOX APIを使用して音声を再生する関数
 export const playVoiceWithVOICEVOX = (
-  text: string, 
-  speakerId: number, 
-  onStart?: () => void, 
+  text: string,
+  speakerId: number,
+  onStart?: () => void,
   onEnd?: () => void
 ): string => {
   try {
     // 成功例に基づいたURL構築
     const audioUrl = `https://deprecatedapis.tts.quest/v2/voicevox/audio/?key=${VOICEVOX_API_KEY}&speaker=${speakerId}&pitch=0&intonationScale=1&speed=1.25&text=${encodeURIComponent(text)}`
-    
+
     return audioUrl
     // return new Promise((resolve, reject) => {
     //   const audio = new Audio()
-      
+
     //   const handleCanPlayThrough = () => {
     //     audio.play()
     //       .then(() => {
@@ -64,7 +64,7 @@ export const playVoiceWithVOICEVOX = (
     //   audio.addEventListener('canplaythrough', handleCanPlayThrough)
     //   audio.addEventListener('ended', handleEnded)
     //   audio.addEventListener('error', handleError)
-      
+
     //   // 音声URLを設定
     //   audio.src = audioUrl
     // })
@@ -76,7 +76,7 @@ export const playVoiceWithVOICEVOX = (
 
 // 複数のメッセージを順次音声再生する関数
 export const playAssistantMessages = (
-  messages: ConversationLog[], 
+  messages: ConversationLog[],
   onSpeakerStart?: (assistantId: string) => void,
   onSpeakerEnd?: (assistantId: string) => void
 ): string[] => {
@@ -92,10 +92,10 @@ export const playAssistantMessages = (
         //   () => onSpeakerEnd?.(message.speaker!.id)
         // )
         results.push(playVoiceWithVOICEVOX(
-            message.content, 
-            speakerId,
-            () => onSpeakerStart?.(message.speaker!.id),
-            () => onSpeakerEnd?.(message.speaker!.id)
+          message.content,
+          speakerId,
+          () => onSpeakerStart?.(message.speaker!.id),
+          () => onSpeakerEnd?.(message.speaker!.id)
         ))
       } catch (error) {
         // console.error(`Failed to play voice for ${message.speaker.name}:`, error)
