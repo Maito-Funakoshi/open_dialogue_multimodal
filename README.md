@@ -1,30 +1,4 @@
-# Open Dialogue Multimodal
+# [Open Dialogue Multimodal](https://open-dialogue-multimodal.vercel.app/)
 
-*Automatically synced with your [v0.dev](https://v0.dev) deployments*
-
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/tenshiro-projects/v0-python-chatbot)
-[![Built with v0](https://img.shields.io/badge/Built%20with-v0.dev-black?style=for-the-badge)](https://v0.dev/chat/projects/HgA6e8X6CiF)
-
-## Overview
-
-This repository will stay in sync with your deployed chats on [v0.dev](https://v0.dev).
-Any changes you make to your deployed app will be automatically pushed to this repository from [v0.dev](https://v0.dev).
-
-## Deployment
-
-Your project is live at:
-
-**[https://vercel.com/tenshiro-projects/v0-python-chatbot](https://vercel.com/tenshiro-projects/v0-python-chatbot)**
-
-## Build your app
-
-Continue building your app on:
-
-**[https://v0.dev/chat/projects/HgA6e8X6CiF](https://v0.dev/chat/projects/HgA6e8X6CiF)**
-
-## How It Works
-
-1. Create and modify your project using [v0.dev](https://v0.dev)
-2. Deploy your chats from the v0 interface
-3. Changes are automatically pushed to this repository
-4. Vercel deploys the latest version from this repository
+テキスト/音声入出力機能を搭載したオープンダイアローグチャットボットアプリver.2です。
+返答生成にはgpt4.1、音声出力には[VOICEVOX API](https://zenn.dev/mongonta/articles/8aac1041c628d4#apikey%E3%81%A8%E3%83%8F%E3%83%83%E3%82%B7%E3%83%A5%E5%80%A4%E3%81%AE%E5%88%A9%E7%94%A8%E7%94%B3%E8%AB%8B)を用いています。
