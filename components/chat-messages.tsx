@@ -24,13 +24,13 @@ export function ChatMessages({ conversationLog, assistants, isReflecting }: Chat
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-xs md:text-sm text-gray-600 mb-1">あなた</div>
-                    <div className="bg-blue-100 rounded-lg p-2 md:p-3 text-gray-800 text-sm md:text-base break-words">{log.content}</div>
+                    <div className="bg-blue-100 rounded-lg p-2 md:p-3 text-gray-800 text-sm md:text-base break-words whitespace-pre-wrap">{log.content}</div>
                   </div>
                 </div>
               ) : log.role === "system" ? (
                 <div className="w-full flex justify-center">
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 md:p-3 my-1 md:my-2 max-w-full">
-                    <div className="text-blue-800 font-medium text-center text-xs md:text-sm break-words">{log.content}</div>
+                    <div className="text-blue-800 font-medium text-center text-xs md:text-sm break-words whitespace-pre-wrap">{log.content}</div>
                   </div>
                 </div>
               ) : (
@@ -40,7 +40,7 @@ export function ChatMessages({ conversationLog, assistants, isReflecting }: Chat
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-xs md:text-sm text-gray-600 mb-1">{log.speaker?.name || "アシスタント"}</div>
-                    <div className="bg-white border border-gray-200 rounded-lg p-2 md:p-3 text-gray-800 text-sm md:text-base break-words">{log.content}</div>
+                    <div className="bg-white border border-gray-200 rounded-lg p-2 md:p-3 text-gray-800 text-sm md:text-base break-words whitespace-pre-wrap">{log.content}</div>
                   </div>
                 </div>
               )}
