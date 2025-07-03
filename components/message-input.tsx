@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Mic, Users } from "lucide-react"
@@ -59,6 +59,9 @@ export function MessageInput({
 }: MessageInputProps) {
   const [message, setMessage] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [audioUrlsToPlay, setAudioUrlsToPlay] = useState<string[]>([]) // 再生待ちのURLを保持
+  const [currentPlayingAudioIndex, setCurrentPlayingAudioIndex] = useState(-1) // 現在再生中の音声のインデックス
+  const audioRef = useRef<HTMLAudioElement>(null)
 
   // 音声入力の初期化
   useEffect(() => {
@@ -91,6 +94,56 @@ export function MessageInput({
       }
     }
   }, [setIsRecording, setRecognition])
+
+  // 音声再生ロジック
+  useEffect(() => {
+    if (audioUrlsToPlay.length > 0 && currentPlayingAudioIndex === -1) {
+      // 再生待ちの音声があり、まだ何も再生されていない場合、最初の音声を再生開始
+      setCurrentPlayingAudioIndex(0)
+    }
+  }, [audioUrlsToPlay, currentPlayingAudioIndex])
+
+  useEffect(() => {
+    const audioElement = audioRef.current
+    if (!audioElement) return
+
+    if (currentPlayingAudioIndex !== -1 && currentPlayingAudioIndex < audioUrlsToPlay.length) {
+      // 新しい音声をロードして再生
+      audioElement.src = audioUrlsToPlay[currentPlayingAudioIndex]
+      audioElement.load() // 新しいソースをロード
+
+      const playAudio = () => {
+        audioElement.play().catch((error) => {
+          console.error("音声の再生に失敗しました:", error)
+        })
+      }
+
+      const handleCanPlayThrough = () => {
+        playAudio()
+      }
+
+      const handleEnded = () => {
+        // 現在の音声が終了したら次の音声を再生
+        setCurrentPlayingAudioIndex((prevIndex) => prevIndex + 1)
+      }
+
+      audioElement.addEventListener("canplaythrough", handleCanPlayThrough)
+      audioElement.addEventListener("ended", handleEnded)
+
+      return () => {
+        audioElement.removeEventListener("canplaythrough", handleCanPlayThrough)
+        audioElement.removeEventListener("ended", handleEnded)
+      }
+    } else if (currentPlayingAudioIndex >= audioUrlsToPlay.length && audioUrlsToPlay.length > 0) {
+      // すべての音声の再生が終了したら状態をリセット
+      setAudioUrlsToPlay([])
+      setCurrentPlayingAudioIndex(-1)
+      if (setCurrentSpeakingAssistant) {
+        setCurrentSpeakingAssistant(null) // 話しているアシスタントをリセット
+      }
+    }
+  }, [currentPlayingAudioIndex, audioUrlsToPlay, setCurrentSpeakingAssistant])
+
 
   const handleSendMessage = async () => {
     if (!message.trim() || isLoading) return
@@ -135,11 +188,13 @@ export function MessageInput({
       setLatestResponse(response)
 
       // 音声再生を実行（非同期で実行し、エラーがあっても処理を継続）
-      safePlayAssistantMessages(
+      const newUrls = safePlayAssistantMessages(
         assistantMessages,
         (assistantId) => setCurrentSpeakingAssistant?.(assistantId),
         (assistantId) => setCurrentSpeakingAssistant?.(null)
       )
+      setAudioUrlsToPlay(newUrls) // ここを修正
+      setCurrentPlayingAudioIndex(-1) // 再生を最初から開始するためにリセット
     } catch (error) {
       console.error("Error generating response:", error)
     } finally {
@@ -213,11 +268,13 @@ export function MessageInput({
       setLatestResponse(response)
 
       // 音声再生を実行（非同期で実行し、エラーがあっても処理を継続）
-      safePlayAssistantMessages(
+      const newUrls = safePlayAssistantMessages(
         assistantMessages,
         (assistantId) => setCurrentSpeakingAssistant?.(assistantId),
         (assistantId) => setCurrentSpeakingAssistant?.(null)
       )
+      setAudioUrlsToPlay(newUrls) // ここを修正
+      setCurrentPlayingAudioIndex(-1) // 再生を最初から開始するためにリセット
     } catch (error) {
       console.error("Error generating response:", error)
     } finally {
@@ -255,8 +312,8 @@ export function MessageInput({
               <Button
                 onClick={toggleRecording}
                 className={`h-10 w-10 rounded-xl shadow-md transition-all duration-200 hover:shadow-lg disabled:opacity-50 ${isRecording
-                    ? "bg-red-600 hover:bg-red-700 animate-pulse"
-                    : "bg-red-500 hover:bg-red-600"
+                  ? "bg-red-600 hover:bg-red-700 animate-pulse"
+                  : "bg-red-500 hover:bg-red-600"
                   } text-white`}
                 disabled={isLoading}
                 title={isRecording ? "録音を停止" : "音声入力を開始"}
@@ -264,6 +321,10 @@ export function MessageInput({
                 <Mic className="w-5 h-5" />
               </Button>
             </div>
+          </div>
+          {/* audioUrls.map を削除し、単一の audio タグを使用 */}
+          <div className="mt-4">
+            <audio ref={audioRef} controls className="hidden"></audio>
           </div>
         </div>
       </div>
