@@ -34,7 +34,7 @@ const menuItems = [
     icon: Home,
   },
   {
-    title: "会話履歴",
+    title: "対話履歴",
     view: "chat" as const,
     icon: MessageSquare,
   },

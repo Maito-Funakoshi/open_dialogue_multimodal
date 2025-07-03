@@ -48,7 +48,7 @@ export function ChatView({
       {/* Header with Hamburger Menu */}
       <div className="bg-white border-b border-gray-200 p-4 md:p-6 relative">
         <SidebarTrigger className="absolute left-2 md:left-4 top-1/2 transform -translate-y-1/2" />
-        <h1 className="text-lg md:text-2xl font-bold text-center text-gray-800 px-12 lg:px-0">会話履歴</h1>
+        <h1 className="text-lg md:text-2xl font-bold text-center text-gray-800 px-12 lg:px-0">対話履歴</h1>
       </div>
 
       {/* Situation Description */}

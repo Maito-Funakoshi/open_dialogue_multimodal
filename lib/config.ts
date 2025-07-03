@@ -82,3 +82,6 @@ export const NAME_INDEX: { [key: string]: string } = {
 
 // リフレクティング会話の回数
 export const REFLECTING_CONVERSATION_COUNT = 1
+
+// LocalStorage key for conversation log
+export const CONVERSATION_LOG_KEY = "conversationLog"

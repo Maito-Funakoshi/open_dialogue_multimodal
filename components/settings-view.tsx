@@ -2,10 +2,13 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
+import { useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { SidebarTrigger } from "@/components/ui/sidebar"
-import { Save, User, Users } from "lucide-react"
+import { Save, User, Users, Trash2 } from "lucide-react"
+import { CONVERSATION_LOG_KEY } from "@/lib/config"
+
 
 interface SettingsViewProps {
   sidebarOpen: boolean
@@ -27,6 +30,8 @@ export function SettingsView({
   const [tempUserName, setTempUserName] = useState(userName)
   const [tempUserGender, setTempUserGender] = useState(userGender)
   const [hasChanges, setHasChanges] = useState(false)
+  const router = useRouter()
+
 
   useEffect(() => {
     setTempUserName(userName)
@@ -54,6 +59,22 @@ export function SettingsView({
   const handleReset = () => {
     setTempUserName(userName)
     setTempUserGender(userGender)
+  }
+
+  const handleClearConversationHistory = () => {
+    if (confirm("対話履歴を削除しますか？この操作は元に戻せません。")) {
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.removeItem(CONVERSATION_LOG_KEY)
+          alert("対話履歴を削除しました")
+          // 削除を即座に反映させるためにリロードさせている
+          window.location.reload()
+        } catch (error) {
+          console.error("Failed to clear conversation history:", error)
+          alert("対話履歴の削除に失敗しました")
+        }
+      }
+    }
   }
 
   return (
@@ -148,6 +169,36 @@ export function SettingsView({
               <div className="flex justify-between items-center py-2">
                 <span className="text-sm text-gray-600">性別:</span>
                 <span className="text-sm font-medium text-gray-800">{userGender}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Data Management */}
+          <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6 shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <Trash2 className="w-5 h-5 text-red-500" />
+              <h2 className="text-base md:text-lg font-semibold text-gray-800">データ管理</h2>
+            </div>
+            <p className="text-xs md:text-sm text-gray-600 mb-4 md:mb-6">
+              保存されたデータを管理できます。削除したデータは復元できませんのでご注意ください。
+            </p>
+            
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <div>
+                  <h3 className="text-sm font-medium text-gray-800">対話履歴の削除</h3>
+                  <p className="text-xs text-gray-600 mt-1">
+                    これまでの全ての対話履歴を削除します
+                  </p>
+                </div>
+                <Button
+                  variant="destructive"
+                  onClick={handleClearConversationHistory}
+                  className="px-4 md:px-6 w-full sm:w-auto"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  履歴を削除
+                </Button>
               </div>
             </div>
           </div>

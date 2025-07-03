@@ -1,19 +1,51 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { SidebarProvider } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
 import { HomeView } from "@/components/home-view"
 import { ChatView } from "@/components/chat-view"
 import { SettingsView } from "@/components/settings-view"
 import type { ConversationLog } from "@/types/chat"
-import { ASSISTANTS, USER, GENDER } from "@/lib/config"
+import { ASSISTANTS, USER, GENDER, CONVERSATION_LOG_KEY } from "@/lib/config"
 import { MessageInput } from "@/components/message-input"
 
 export default function Home() {
   const [currentView, setCurrentView] = useState<"home" | "chat" | "settings">("home")
   const [conversationLog, setConversationLog] = useState<ConversationLog[]>([])
   const [latestResponse, setLatestResponse] = useState<string>("")
+
+
+
+  // Load conversation log from localStorage on component mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const savedLog = localStorage.getItem(CONVERSATION_LOG_KEY)
+        if (savedLog) {
+          const parsedLog = JSON.parse(savedLog) as ConversationLog[]
+          setConversationLog(parsedLog)
+        }
+      } catch (error) {
+        console.error("Failed to load conversation log from localStorage:", error)
+      }
+    }
+  }, [])
+
+  // Custom setConversationLog function that also saves to localStorage
+  const updateConversationLog = (newLog: ConversationLog[]) => {
+    console.log("newLog: ", newLog)
+    setConversationLog(newLog)
+    
+    // Save to localStorage
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem(CONVERSATION_LOG_KEY, JSON.stringify(newLog))
+      } catch (error) {
+        console.error("Failed to save conversation log to localStorage:", error)
+      }
+    }
+  }
   const [isRecording, setIsRecording] = useState(false)
   const [recognition, setRecognition] = useState<any>(null)
   const [isReflecting, setIsReflecting] = useState(false)
@@ -54,7 +86,7 @@ ${userName}さんは${genderscript}クライアントで${ASSISTANTS[0].name}、
               isReady={isReady}
               setIsReady={setIsReady}
               conversationLog={conversationLog}
-              setConversationLog={setConversationLog}
+              setConversationLog={updateConversationLog}
               latestResponse={latestResponse}
               setLatestResponse={setLatestResponse}
               isReflecting={isReflecting}
@@ -74,7 +106,7 @@ ${userName}さんは${genderscript}クライアントで${ASSISTANTS[0].name}、
               assistants={ASSISTANTS}
               situation={situation}
               conversationLog={conversationLog}
-              setConversationLog={setConversationLog}
+              setConversationLog={updateConversationLog}
               latestResponse={latestResponse}
               setLatestResponse={setLatestResponse}
               isReflecting={isReflecting}
@@ -103,7 +135,7 @@ ${userName}さんは${genderscript}クライアントで${ASSISTANTS[0].name}、
           {currentView !== "settings" && (
             <MessageInput
               conversationLog={conversationLog}
-              setConversationLog={setConversationLog}
+              setConversationLog={updateConversationLog}
               setLatestResponse={setLatestResponse}
               setIsReflecting={setIsReflecting}
               isReady={isReady}
