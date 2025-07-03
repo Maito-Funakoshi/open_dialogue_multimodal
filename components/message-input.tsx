@@ -243,7 +243,7 @@ export function MessageInput({
             />
           </div>
           <div className="flex items-center gap-1 md:gap-2">
-            <div className="flex flex-row md:flex-col gap-2 md:gap-4">
+            <div className="flex flex-col gap-4 md:gap-4">
               <Button
                 onClick={startReflecting}
                 disabled={isLoading}
