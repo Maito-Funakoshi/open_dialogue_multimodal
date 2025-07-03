@@ -1,4 +1,4 @@
-# Python chatbot
+# Open Dialogue Multimodal
 
 *Automatically synced with your [v0.dev](https://v0.dev) deployments*
 
