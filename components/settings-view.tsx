@@ -53,6 +53,10 @@ export function SettingsView({
     setUserName(tempUserName.trim())
     setUserGender(tempUserGender)
 
+    localStorage.setItem("userName", tempUserName.trim())
+    localStorage.setItem("gender",tempUserGender)
+
+
     alert("設定を保存しました")
   }
 

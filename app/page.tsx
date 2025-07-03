@@ -14,7 +14,39 @@ export default function Home() {
   const [currentView, setCurrentView] = useState<"home" | "chat" | "settings">("home")
   const [conversationLog, setConversationLog] = useState<ConversationLog[]>([])
   const [latestResponse, setLatestResponse] = useState<string>("")
+  const [isRecording, setIsRecording] = useState(false)
+  const [recognition, setRecognition] = useState<any>(null)
+  const [isReflecting, setIsReflecting] = useState(false)
+  const [isReady, setIsReady] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [currentSpeakingAssistant, setCurrentSpeakingAssistant] = useState<string | null>(null)
+  
+  // User settings state
+  const [userName, setUserName] = useState<string>(USER)
+  const [userGender, setUserGender] = useState<string>(GENDER)
 
+  const genderscript = userGender != "未回答" ? `${userGender}の` : ""
+
+    // Load user settings from localStorage on component mount
+  // このuseEffectがクライアントサイドでのみ実行される
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedUserName = localStorage.getItem("userName")
+      const savedUserGender = localStorage.getItem("gender")
+      if (savedUserName) {
+        setUserName(savedUserName)
+      }
+      if (savedUserGender) {
+        setUserGender(savedUserGender)
+      }
+    }
+  }, [])
+
+  // Dynamic situation based on user settings
+  const situation = useMemo(() => {
+    return `オープンダイアローグが行われる場所
+${userName}さんは${genderscript}クライアントで${ASSISTANTS[0].name}、${ASSISTANTS[1].name}、${ASSISTANTS[2].name}はアシスタント`
+  }, [userName, userGender])
 
 
   // Load conversation log from localStorage on component mount
@@ -46,24 +78,6 @@ export default function Home() {
       }
     }
   }
-  const [isRecording, setIsRecording] = useState(false)
-  const [recognition, setRecognition] = useState<any>(null)
-  const [isReflecting, setIsReflecting] = useState(false)
-  const [isReady, setIsReady] = useState(true)
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [currentSpeakingAssistant, setCurrentSpeakingAssistant] = useState<string | null>(null)
-  
-  // User settings state
-  const [userName, setUserName] = useState<string>(USER)
-  const [userGender, setUserGender] = useState<string>(GENDER)
-
-  const genderscript = userGender != "未回答" ? `${userGender}の` : ""
-
-  // Dynamic situation based on user settings
-  const situation = useMemo(() => {
-    return `オープンダイアローグが行われる場所
-${userName}さんは${genderscript}クライアントで${ASSISTANTS[0].name}、${ASSISTANTS[1].name}、${ASSISTANTS[2].name}はアシスタント`
-  }, [userName, userGender])
 
   return (
     <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen}>
