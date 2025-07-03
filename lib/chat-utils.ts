@@ -5,10 +5,14 @@ import type { Assistant, ConversationLog } from "@/types/chat"
  */
 export function parseAssistantResponse(response: string, assistants: Assistant[]): ConversationLog[] {
   const messages: ConversationLog[] = []
+  const names = assistants.map((assistant) => {return assistant.name})
   const lines = response.split("\n").filter((line) => line.trim())
 
+  const namePattern = names.join("|") // "後藤|西村|山田"
+  const matcher = new RegExp(`^(${namePattern})：(.+)$`)
+
   for (const line of lines) {
-    const match = line.match(/^(後藤|西村|山田)：(.+)$/)
+    const match = line.match(matcher)
     if (match) {
       const [, speakerName, content] = match
       const assistant = assistants.find((a) => a.name === speakerName)
@@ -17,8 +21,7 @@ export function parseAssistantResponse(response: string, assistants: Assistant[]
         messages.push({
           role: "assistant",
           content: content.trim(),
-          speaker: assistant,
-          timestamp: new Date(),
+          speaker: assistant
         })
       }
     }
@@ -44,7 +47,6 @@ export function addSystemMessage(
   const systemMessage: ConversationLog = {
     role: "system",
     content,
-    timestamp: new Date(),
   }
   return [...log, systemMessage]
 }
@@ -59,7 +61,6 @@ export function addUserMessage(
   const userMessage: ConversationLog = {
     role: "user",
     content,
-    timestamp: new Date(),
   }
   return [...log, userMessage]
 }

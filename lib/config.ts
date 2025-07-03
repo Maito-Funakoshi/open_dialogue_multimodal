@@ -8,8 +8,6 @@ export const ASSISTANTS: Assistant[] = [
   {
     id: "0",
     name: "後藤",
-    displayName: "後藤",
-    color: "bg-blue-500",
     character: `
       - 年齢: 45歳
       - 性別: 男性
@@ -29,8 +27,6 @@ export const ASSISTANTS: Assistant[] = [
   {
     id: "1",
     name: "西村",
-    displayName: "西村",
-    color: "bg-purple-500",
     character: `
       - 年齢: 33歳
       - 性別: 女性
@@ -52,8 +48,6 @@ export const ASSISTANTS: Assistant[] = [
   {
     id: "2",
     name: "山田",
-    displayName: "山田",
-    color: "bg-red-500",
     character: `
       - 年齢: 28歳
       - 性別: 男性

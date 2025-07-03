@@ -34,7 +34,7 @@ export const playVoiceWithVOICEVOX = async (
       const handleCanPlayThrough = () => {
         audio.play()
           .then(() => {
-            console.log(`Playing voice for speaker ${speakerId}: ${text}`)
+            // console.log(`Playing voice for speaker ${speakerId}: ${text}`)
             onStart?.() // コールバック実行
           })
           .catch((error) => {
