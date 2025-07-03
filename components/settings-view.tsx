@@ -4,7 +4,8 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Menu, Save, User, Users } from "lucide-react"
+import { SidebarTrigger } from "@/components/ui/sidebar"
+import { Save, User, Users } from "lucide-react"
 
 interface SettingsViewProps {
   sidebarOpen: boolean
@@ -58,28 +59,21 @@ export function SettingsView({
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       {/* Header with Hamburger Menu */}
-      <div className="bg-white border-b border-gray-200 p-6 relative">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="absolute left-4 top-1/2 transform -translate-y-1/2"
-        >
-          <Menu className="w-5 h-5" />
-        </Button>
-        <h1 className="text-2xl font-bold text-center text-gray-800">設定</h1>
+      <div className="bg-white border-b border-gray-200 p-4 md:p-6 relative">
+        <SidebarTrigger className="absolute left-2 md:left-4 top-1/2 transform -translate-y-1/2" />
+        <h1 className="text-lg md:text-2xl font-bold text-center text-gray-800 px-12 lg:px-0">設定</h1>
       </div>
 
       {/* Settings Content */}
-      <div className="flex-1 overflow-auto p-6">
-        <div className="max-w-2xl mx-auto space-y-8">
+      <div className="flex-1 overflow-auto p-3 md:p-6">
+        <div className="max-w-2xl mx-auto space-y-6 md:space-y-8">
           {/* User Profile Settings */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+          <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6 shadow-sm">
             <div className="flex items-center gap-2 mb-4">
               <User className="w-5 h-5 text-blue-500" />
-              <h2 className="text-lg font-semibold text-gray-800">ユーザープロフィール</h2>
+              <h2 className="text-base md:text-lg font-semibold text-gray-800">ユーザープロフィール</h2>
             </div>
-            <p className="text-sm text-gray-600 mb-6">
+            <p className="text-xs md:text-sm text-gray-600 mb-4 md:mb-6">
               あなたの基本情報を設定してください。この情報はアシスタントとの会話で使用されます。
             </p>
             
@@ -141,10 +135,10 @@ export function SettingsView({
           </div>
 
           {/* Current Settings Display */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+          <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6 shadow-sm">
             <div className="flex items-center gap-2 mb-4">
               <Users className="w-5 h-5 text-green-500" />
-              <h2 className="text-lg font-semibold text-gray-800">現在の設定</h2>
+              <h2 className="text-base md:text-lg font-semibold text-gray-800">現在の設定</h2>
             </div>
             <div className="space-y-3">
               <div className="flex justify-between items-center py-2 border-b border-gray-100">
@@ -160,17 +154,17 @@ export function SettingsView({
 
           {/* Action Buttons */}
           {hasChanges && (
-            <div className="flex gap-3 justify-end">
+            <div className="flex flex-col sm:flex-row gap-3 justify-end">
               <Button
                 variant="outline"
                 onClick={handleReset}
-                className="px-6"
+                className="px-4 md:px-6 w-full sm:w-auto"
               >
                 リセット
               </Button>
               <Button
                 onClick={handleSave}
-                className="px-6 bg-blue-500 hover:bg-blue-600"
+                className="px-4 md:px-6 bg-blue-500 hover:bg-blue-600 w-full sm:w-auto"
               >
                 <Save className="w-4 h-4 mr-2" />
                 保存

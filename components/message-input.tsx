@@ -229,39 +229,39 @@ export function MessageInput({
   const inputPlaceholder = isRecording ? "音声を認識中..." : placeholder
 
   return (
-    <div className="bg-white border-t border-gray-200 p-6">
+    <div className="bg-white border-t border-gray-200 p-3 md:p-6">
       <div className="max-w-4xl mx-auto">
-        <div className="flex items-center gap-3">
+        <div className="flex items-end gap-2 md:gap-3">
           <div className="flex-1 relative">
             <Textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder={inputPlaceholder}
-              className="h-24 text-gray-900 placeholder-gray-500 pr-4 text-base rounded-xl border-2 border-gray-200 focus:border-blue-400 focus:ring-0 shadow-sm"
+              className="h-16 md:h-24 text-gray-900 placeholder-gray-500 pr-4 text-sm md:text-base rounded-xl border-2 border-gray-200 focus:border-blue-400 focus:ring-0 shadow-sm resize-none"
               disabled={isLoading}
             />
           </div>
-          <div className="flex items-center gap-2">
-            <div className="flex flex-col gap-4">
+          <div className="flex items-center gap-1 md:gap-2">
+            <div className="flex flex-row md:flex-col gap-2 md:gap-4">
               <Button
                 onClick={startReflecting}
                 disabled={isLoading}
-                className="h-10 w-10 bg-purple-500 hover:bg-purple-600 text-white rounded-xl shadow-md transition-all duration-200 hover:shadow-lg disabled:opacity-50"
+                className="h-8 w-8 md:h-10 md:w-10 bg-purple-500 hover:bg-purple-600 text-white rounded-lg md:rounded-xl shadow-md transition-all duration-200 hover:shadow-lg disabled:opacity-50"
                 title="リフレクティングを開始"
               >
-                <Users className="w-5 h-5" />
+                <Users className="w-4 h-4 md:w-5 md:h-5" />
               </Button>
               <Button
                 onClick={toggleRecording}
-                className={`h-10 w-10 rounded-xl shadow-md transition-all duration-200 hover:shadow-lg disabled:opacity-50 ${isRecording
+                className={`h-8 w-8 md:h-10 md:w-10 rounded-lg md:rounded-xl shadow-md transition-all duration-200 hover:shadow-lg disabled:opacity-50 ${isRecording
                     ? "bg-red-600 hover:bg-red-700 animate-pulse"
                     : "bg-red-500 hover:bg-red-600"
                   } text-white`}
                 disabled={isLoading}
                 title={isRecording ? "録音を停止" : "音声入力を開始"}
               >
-                <Mic className="w-5 h-5" />
+                <Mic className="w-4 h-4 md:w-5 md:h-5" />
               </Button>
             </div>
           </div>

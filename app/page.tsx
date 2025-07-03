@@ -36,8 +36,17 @@ ${userName}さんは${genderscript}クライアントで${ASSISTANTS[0].name}、
   return (
     <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen}>
       <div className="flex min-h-screen w-full relative">
-        <AppSidebar assistants={ASSISTANTS} currentView={currentView} setCurrentView={setCurrentView} />
-        <main className="flex-1 flex flex-col space-evenly">
+        {/* Desktop sidebar - always visible on desktop */}
+        <div className="hidden md:block">
+          <AppSidebar 
+            assistants={ASSISTANTS} 
+            currentView={currentView} 
+            setCurrentView={setCurrentView}
+            sidebarOpen={sidebarOpen}
+            setSidebarOpen={setSidebarOpen}
+          />
+        </div>
+        <main className="flex-1 flex flex-col w-full lg:ml-0">
           {currentView === "home" && (
             <HomeView
               assistants={ASSISTANTS}

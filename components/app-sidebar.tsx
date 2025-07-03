@@ -12,13 +12,19 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarSeparator,
+  useSidebar,
 } from "@/components/ui/sidebar"
+import { Button } from "@/components/ui/button"
+import { X } from "lucide-react"
 import type { Assistant } from "@/types/chat"
 
 interface AppSidebarProps {
   assistants: Assistant[]
   currentView: "home" | "chat" | "settings"
   setCurrentView: (view: "home" | "chat" | "settings") => void
+  sidebarOpen: boolean
+  setSidebarOpen: (sidebar: boolean) => void
+  onMenuClick?: () => void
 }
 
 const menuItems = [
@@ -39,12 +45,29 @@ const menuItems = [
   },
 ]
 
-export function AppSidebar({ assistants, currentView, setCurrentView }: AppSidebarProps) {
+export function AppSidebar({ assistants, currentView, setCurrentView, sidebarOpen, setSidebarOpen, onMenuClick }: AppSidebarProps) {
+  const { toggleSidebar, isMobile } = useSidebar()
+
+  const handleCloseClick = () => {
+    if (isMobile) {
+      toggleSidebar()
+    } else {
+      setSidebarOpen(!sidebarOpen)
+    }
+  }
+
   return (
-    <Sidebar className="border-r border-gray-200 w-64">
+    <Sidebar className="w-64" collapsible="offcanvas">
       <SidebarHeader className="p-4">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded flex items-center justify-center text-white font-bold">ODC</div>
+        <div className="flex items-center justify-between">
+          <div className="w-10 h-10 flex items-center justify-center text-white font-bold">
+            ODC
+          </div>
+          <Button
+          onClick={handleCloseClick}
+          >
+            <X className="w-10 h-10"/>
+          </Button>
         </div>
       </SidebarHeader>
 
@@ -56,7 +79,10 @@ export function AppSidebar({ assistants, currentView, setCurrentView }: AppSideb
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <button
-                      onClick={() => setCurrentView(item.view)}
+                      onClick={() => {
+                        setCurrentView(item.view)
+                        onMenuClick?.()
+                      }}
                       className={`flex items-center gap-3 px-3 py-2 rounded-md w-full text-left ${
                         currentView === item.view
                           ? "bg-gray-700 text-white"
