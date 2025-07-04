@@ -11,9 +11,9 @@ export class IOSAudioHelper {
     try {
       // 無音を再生してオーディオコンテキストを初期化
       const silentAudio = new Audio(this.silentMP3)
-      silentAudio.volume = 0.1
+      silentAudio.volume = 1.0  // 音量を統一（1.0に）
       await silentAudio.play()
-      console.log('iOS audio initialized with silent playback')
+      console.log('iOS audio initialized with silent playback at volume 1.0')
     } catch (error) {
       console.error('Failed to initialize iOS audio:', error)
     }
@@ -24,7 +24,11 @@ export class IOSAudioHelper {
     // キャッシュから取得
     if (this.audioCache.has(url)) {
       const cached = this.audioCache.get(url)!
+      // 音量を含むすべての属性を確実にリセット
       cached.currentTime = 0
+      cached.volume = 1.0  // 音量を明示的に1.0にリセット
+      cached.playbackRate = 1.0  // 再生速度もリセット
+      console.log('Reusing cached audio with volume reset to 1.0')
       return cached
     }
     
@@ -42,6 +46,8 @@ export class IOSAudioHelper {
     // 新しいAudioを作成してキャッシュ
     const audio = new Audio()
     audio.preload = 'auto'
+    audio.volume = 1.0  // 新規作成時も音量を1.0に設定
+    console.log('Created new audio with volume 1.0')
     this.audioCache.set(url, audio)
     return audio
   }

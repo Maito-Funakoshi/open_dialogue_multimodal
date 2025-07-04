@@ -98,25 +98,35 @@ export const playVoiceWithVOICEVOX = async (
         
         // ボリューム設定（iOSでは重要）
         audio.volume = 1.0
+        
+        // 音量変更イベントを監視
+        audio.addEventListener('volumechange', () => {
+          console.log('iOS: Volume changed to:', audio.volume)
+          if (audio.volume !== 1.0) {
+            console.warn('iOS: Volume was changed unexpectedly, resetting to 1.0')
+            audio.volume = 1.0
+          }
+        })
       } else {
         // その他のプラットフォームではCORS設定
         audio.crossOrigin = 'anonymous'
+        audio.volume = 1.0
       }
       
       const handleCanPlayThrough = async () => {
         try {
-          // iOSの場合は少し遅延を入れる
+          // iOSの場合の特別処理
           if (isIOS()) {
-            await new Promise(resolve => setTimeout(resolve, 100))
-          }
-          
-          // iOSの場合は事前に無音再生で初期化
-          if (isIOS() && audioManager.isAudioUnlocked()) {
-            await IOSAudioHelper.initializeAudioForIOS()
+            // 音量を再度確認して設定
+            audio.volume = 1.0
+            console.log('iOS: Confirming volume before playback:', audio.volume)
+            
+            // Web Audio APIとの干渉を避けるため少し待つ
+            await new Promise(resolve => setTimeout(resolve, 50))
           }
           
           await audio.play()
-          console.log(`Playing voice for speaker ${speakerId}`)
+          console.log(`Playing voice for speaker ${speakerId} at volume:`, audio.volume)
           onStart?.()
         } catch (error: any) {
           console.error('音声の再生に失敗しました:', {
@@ -180,7 +190,7 @@ export const playVoiceWithVOICEVOX = async (
         })
         
         audio.addEventListener('loadeddata', () => {
-          console.log('Audio data loaded, duration:', audio.duration)
+          console.log('Audio data loaded, duration:', audio.duration, 'volume:', audio.volume)
         })
         
         audio.addEventListener('loadedmetadata', () => {
@@ -209,11 +219,13 @@ export const playVoiceWithVOICEVOX = async (
       if (isIOS()) {
         // 即座にloadを呼ぶ
         audio.load()
-        console.log('Audio load triggered for iOS')
+        console.log('Audio load triggered for iOS, current volume:', audio.volume)
         
         // プリロード後に再生を試みる
         audio.addEventListener('loadedmetadata', () => {
-          console.log('iOS: Metadata loaded, ready to play')
+          console.log('iOS: Metadata loaded, ready to play, volume:', audio.volume)
+          // 最終確認として音量を再設定
+          audio.volume = 1.0
         }, { once: true })
       }
     })

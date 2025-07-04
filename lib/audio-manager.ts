@@ -25,14 +25,22 @@ export class AudioManager {
       
       // iOS向けの無音再生でコンテキストを解除
       if (this.audioContext.state === 'suspended') {
-        const buffer = this.audioContext.createBuffer(1, 1, 22050)
+        // サンプルレートを44100Hzに統一（音質向上）
+        const buffer = this.audioContext.createBuffer(1, 1, 44100)
         const source = this.audioContext.createBufferSource()
         source.buffer = buffer
-        source.connect(this.audioContext.destination)
+        
+        // ゲインノードを追加して音量を明示的に制御
+        const gainNode = this.audioContext.createGain()
+        gainNode.gain.value = 1.0  // 音量を1.0に統一
+        
+        source.connect(gainNode)
+        gainNode.connect(this.audioContext.destination)
         source.start(0)
         
         // コンテキストの再開を待つ
         await this.audioContext.resume()
+        console.log('AudioContext resumed with gain:', gainNode.gain.value)
       }
       
       this.isUnlocked = true
