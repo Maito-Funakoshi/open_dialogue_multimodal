@@ -14,6 +14,7 @@ import {
   addUserMessage
 } from "@/lib/chat-utils"
 import { safePlayAssistantMessages } from "@/lib/voice-utils"
+import { AudioManager } from "@/lib/audio-manager"
 
 interface MessageInputProps {
   conversationLog: ConversationLog[]
@@ -95,6 +96,10 @@ export function MessageInput({
   const handleSendMessage = async () => {
     if (!message.trim() || isLoading) return
 
+    // iOS向けのオーディオコンテキスト解除
+    const audioManager = AudioManager.getInstance()
+    await audioManager.handleUserInteraction()
+
     // Stop recording if active
     if (isRecording && recognition) {
       recognition.stop()
@@ -156,11 +161,15 @@ export function MessageInput({
     }
   }
 
-  const toggleRecording = () => {
+  const toggleRecording = async () => {
     if (!recognition) {
       alert("音声認識がサポートされていません")
       return
     }
+
+    // iOS向けのオーディオコンテキスト解除
+    const audioManager = AudioManager.getInstance()
+    await audioManager.handleUserInteraction()
 
     if (isRecording) {
       recognition.stop()
@@ -175,6 +184,10 @@ export function MessageInput({
 
   const startReflecting = async () => {
     if (isLoading) return
+
+    // iOS向けのオーディオコンテキスト解除
+    const audioManager = AudioManager.getInstance()
+    await audioManager.handleUserInteraction()
 
     // Stop recording if active
     if (isRecording && recognition) {
