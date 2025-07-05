@@ -56,6 +56,11 @@ export const playVoiceWithVOICEVOX = async (
     if (currentAudio) {
       currentAudio.pause()
       currentAudio.src = ''
+      // 既存のaudio要素を削除
+      const existingAudio = document.getElementById("voicevox-audio")
+      if (existingAudio) {
+        existingAudio.remove()
+      }
       currentAudio = null
     }
 
@@ -82,151 +87,89 @@ export const playVoiceWithVOICEVOX = async (
       console.log('Using direct URL:', audioUrl)
     }
     
+    // Fetch APIを使用してblobデータを取得
+    const response = await fetch(audioUrl)
+    if (!response.ok) {
+      throw new Error(`Fetch Error: ${response.status}`)
+    }
+    
+    // Blobデータとして取得
+    const blobData = await response.blob()
+    
     return new Promise((resolve, reject) => {
-      // iOSの場合はキャッシュされたAudioを使用
-      const audio = isIOS() ? IOSAudioHelper.getOrCreateAudio(audioUrl) : new Audio()
-      currentAudio = audio
-      
-      // iOSの場合は追加の設定
-      if (isIOS()) {
-        // プロキシ経由なのでCORS設定は不要
-        audio.preload = 'auto'
+      if (blobData) {
+        // BlobからObjectURLを作成
+        const blobUrl = URL.createObjectURL(blobData)
+        
+        // Audio要素の生成
+        const audioElement = document.createElement("audio")
+        audioElement.id = "voicevox-audio"
+        audioElement.src = blobUrl
+        audioElement.controls = false
+        audioElement.muted = false
+        audioElement.autoplay = true
+        audioElement.volume = 1.0
         
         // iOS向けの追加属性
-        audio.setAttribute('playsinline', 'true')
-        audio.setAttribute('webkit-playsinline', 'true')
+        if (isIOS()) {
+          audioElement.setAttribute('playsinline', 'true')
+          audioElement.setAttribute('webkit-playsinline', 'true')
+        }
         
-        // ボリューム設定（iOSでは重要）
-        audio.volume = 1.0
+        // 既に同名の要素が存在する場合は、削除
+        const existingElement = document.getElementById("voicevox-audio")
+        if (existingElement) {
+          existingElement.remove()
+        }
         
-        // 音量変更イベントを監視
-        audio.addEventListener('volumechange', () => {
-          console.log('iOS: Volume changed to:', audio.volume)
-          if (audio.volume !== 1.0) {
-            console.warn('iOS: Volume was changed unexpectedly, resetting to 1.0')
-            audio.volume = 1.0
+        // currentAudioに設定
+        currentAudio = audioElement
+        
+        // イベントリスナーの設定
+        const handlePlay = () => {
+          console.log(`Playing voice for speaker ${speakerId} at volume:`, audioElement.volume)
+          onStart?.()
+        }
+        
+        const handleEnded = () => {
+          console.log('Audio playback ended')
+          // ObjectURLのクリーンアップ
+          URL.revokeObjectURL(blobUrl)
+          audioElement.removeEventListener('play', handlePlay)
+          audioElement.removeEventListener('ended', handleEnded)
+          audioElement.removeEventListener('error', handleError)
+          onEnd?.()
+          resolve()
+        }
+        
+        const handleError = (error: any) => {
+          console.error('Audio playback error:', error)
+          // ObjectURLのクリーンアップ
+          URL.revokeObjectURL(blobUrl)
+          audioElement.removeEventListener('play', handlePlay)
+          audioElement.removeEventListener('ended', handleEnded)
+          audioElement.removeEventListener('error', handleError)
+          onEnd?.()
+          reject(new Error(`Audio playback failed: ${error.message || 'Unknown error'}`))
+        }
+        
+        audioElement.addEventListener('play', handlePlay)
+        audioElement.addEventListener('ended', handleEnded)
+        audioElement.addEventListener('error', handleError)
+        
+        // 要素追加
+        document.body.appendChild(audioElement)
+        
+        // 自動再生が失敗した場合の手動再生
+        audioElement.play().catch((error) => {
+          console.error('自動再生に失敗しました:', error)
+          if (error.name === 'NotAllowedError') {
+            console.warn('自動再生制限: ユーザーインタラクションが必要です')
           }
+          handleError(error)
         })
       } else {
-        // その他のプラットフォームではCORS設定
-        audio.crossOrigin = 'anonymous'
-        audio.volume = 1.0
-      }
-      
-      const handleCanPlayThrough = async () => {
-        try {
-          // iOSの場合の特別処理
-          if (isIOS()) {
-            // 音量を再度確認して設定
-            audio.volume = 1.0
-            console.log('iOS: Confirming volume before playback:', audio.volume)
-            
-            // Web Audio APIとの干渉を避けるため少し待つ
-            await new Promise(resolve => setTimeout(resolve, 50))
-          }
-          
-          await audio.play()
-          console.log(`Playing voice for speaker ${speakerId} at volume:`, audio.volume)
-          onStart?.()
-        } catch (error: any) {
-          console.error('音声の再生に失敗しました:', {
-            error: error.message,
-            name: error.name,
-            code: error.code,
-            isIOS: isIOS()
-          })
-          
-          // iOSでの自動再生エラーの場合、ユーザーインタラクションを促す
-          if (error.name === 'NotAllowedError' && isIOS()) {
-            console.warn('iOS自動再生制限: ユーザーインタラクションが必要です')
-          }
-          
-          reject(error)
-        }
-      }
-
-      const handleEnded = () => {
-        audio.removeEventListener('canplaythrough', handleCanPlayThrough)
-        audio.removeEventListener('ended', handleEnded)
-        audio.removeEventListener('error', handleError)
-        onEnd?.() // コールバック実行
-        resolve()
-      }
-
-      const handleError = (error: any) => {
-        audio.removeEventListener('canplaythrough', handleCanPlayThrough)
-        audio.removeEventListener('ended', handleEnded)
-        audio.removeEventListener('error', handleError)
-        
-        const errorDetails = {
-          type: error.type,
-          target: error.target,
-          currentSrc: audio.currentSrc,
-          networkState: audio.networkState,
-          readyState: audio.readyState,
-          error: audio.error ? {
-            code: audio.error.code,
-            message: audio.error.message,
-            MEDIA_ERR_ABORTED: audio.error.code === 1,
-            MEDIA_ERR_NETWORK: audio.error.code === 2,
-            MEDIA_ERR_DECODE: audio.error.code === 3,
-            MEDIA_ERR_SRC_NOT_SUPPORTED: audio.error.code === 4
-          } : null,
-          isIOS: isIOS(),
-          userAgent: navigator.userAgent,
-          platform: navigator.platform
-        }
-        
-        console.error('Audio error:', errorDetails)
-        onEnd?.()
-        reject(new Error(`Audio playback failed: ${JSON.stringify(errorDetails)}`))
-      }
-
-      // iOS向けの追加イベントリスナー
-      if (isIOS()) {
-        // ネットワーク状態の監視
-        audio.addEventListener('loadstart', () => {
-          console.log('Load started, network state:', audio.networkState)
-        })
-        
-        audio.addEventListener('loadeddata', () => {
-          console.log('Audio data loaded, duration:', audio.duration, 'volume:', audio.volume)
-        })
-        
-        audio.addEventListener('loadedmetadata', () => {
-          console.log('Metadata loaded, can play:', audio.canPlayType('audio/mpeg'))
-        })
-        
-        // プログレスイベントの監視
-        audio.addEventListener('progress', () => {
-          console.log('Loading progress, buffered:', audio.buffered.length)
-        })
-        
-        // ストールの検出
-        audio.addEventListener('stalled', () => {
-          console.warn('Audio loading stalled')
-        })
-      }
-      
-      audio.addEventListener('canplaythrough', handleCanPlayThrough)
-      audio.addEventListener('ended', handleEnded)
-      audio.addEventListener('error', handleError)
-      
-      // 音声URLを設定
-      audio.src = audioUrl
-      
-      // iOSの場合は特別な処理
-      if (isIOS()) {
-        // 即座にloadを呼ぶ
-        audio.load()
-        console.log('Audio load triggered for iOS, current volume:', audio.volume)
-        
-        // プリロード後に再生を試みる
-        audio.addEventListener('loadedmetadata', () => {
-          console.log('iOS: Metadata loaded, ready to play, volume:', audio.volume)
-          // 最終確認として音量を再設定
-          audio.volume = 1.0
-        }, { once: true })
+        reject(new Error('Failed to create blob data'))
       }
     })
   } catch (error) {
