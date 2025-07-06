@@ -1,18 +1,22 @@
 import type { ConversationLog } from "@/types/chat"
 import { AudioManager } from "./audio-manager"
 import { IOSAudioHelper } from "./ios-audio-helper"
+import AzureOpenAI from "openai"
 
-// VOICEVOX API設定
-const VOICEVOX_API_KEY = process.env.NEXT_PUBLIC_VOICEVOX_API_KEY || "your_api_key_here"
+// 環境変数の取得
+const AZURE_OPENAI_TTS_ENDPOINT = process.env.NEXT_PUBLIC_AZURE_OPENAI_TTS_ENDPOINT
+const AZURE_OPENAI_TTS_API_KEY = process.env.NEXT_PUBLIC_AZURE_OPENAI_TTS_API_KEY
+const AZURE_OPENAI_TTS_API_VERSION = process.env.NEXT_PUBLIC_AZURE_OPENAI_TTS_API_VERSION
+const AZURE_OPENAI_TTS_DEPLOYMENT_NAME = process.env.NEXT_PUBLIC_AZURE_OPENAI_TTS_DEPLOYMENT_NAME || ""
 
 // iOS/iPadOS検出ヘルパー関数（iPadOS 13以降対応）
 const isIOS = (): boolean => {
   if (typeof window === 'undefined') return false
-  
+
   const ua = navigator.userAgent
   const isIPad = ua.includes('iPad') || (ua.includes('Macintosh') && 'ontouchend' in document)
   const isIPhone = ua.includes('iPhone') || ua.includes('iPod')
-  
+
   // iOS Safari、Chrome、その他のブラウザでも検出
   return isIPad || isIPhone || (
     // iPad Pro on iOS 13+ detection
@@ -24,24 +28,25 @@ const isIOS = (): boolean => {
 let currentAudio: HTMLAudioElement | null = null
 
 // アシスタント名とspeaker IDのマッピング
-export const getSpeakerIdByAssistant = (assistantName: string): number => {
+export const getSpeakerByAssistant = (assistantName: string): string => {
+  // alloy: 青年, ash: 中年男性, ballad: 青年, coral: Ririko, echo: 青年, able: 陣内のダニエル, onyx: 落ち着いた男性, nova: 30歳くらいの女性, sage: 語り手の女性, shimmer: 中性？, verse: 青年
   switch (assistantName) {
     case "後藤":
-      return 13  // 女性の声
+      return "onyx"
     case "西村":
-      return 20 // 男性の声
+      return "nova"
     case "山田":
-      return 21  // 別の声
+      return "alloy"
     default:
-      return 8
+      return "verse"
   }
 }
 
 // VOICEVOX APIを使用して音声を再生する関数
 export const playVoiceWithVOICEVOX = async (
-  text: string, 
-  speakerId: number, 
-  onStart?: () => void, 
+  text: string,
+  speaker: string,
+  onStart?: () => void,
   onEnd?: () => void
 ): Promise<void> => {
   try {
@@ -67,40 +72,36 @@ export const playVoiceWithVOICEVOX = async (
     // デバッグ情報を出力
     console.log('Starting voice playback:', {
       text: text.substring(0, 50) + '...',
-      speakerId,
+      speaker,
       isIOS: isIOS(),
       userAgent: navigator.userAgent
     })
 
     // iOSの場合はプロキシ経由、それ以外は直接アクセス
     let audioUrl: string
-    
-    if (isIOS()) {
-      // iOSの場合はNext.js APIプロキシを使用
-      const encodedText = encodeURIComponent(text)
-      audioUrl = `/api/voice?text=${encodedText}&speaker=${speakerId}`
-      console.log('Using proxy for iOS:', audioUrl)
-    } else {
-      // その他のプラットフォームは直接アクセス
-      const encodedText = encodeURIComponent(text).replace(/'/g, '%27')
-      audioUrl = `https://deprecatedapis.tts.quest/v2/voicevox/audio/?key=${VOICEVOX_API_KEY}&speaker=${speakerId}&pitch=0&intonationScale=1&speed=1.25&text=${encodedText}`
-      console.log('Using direct URL:', audioUrl)
-    }
-    
-    // Fetch APIを使用してblobデータを取得
-    const response = await fetch(audioUrl)
-    if (!response.ok) {
-      throw new Error(`Fetch Error: ${response.status}`)
-    }
-    
+
+    const client = new AzureOpenAI({
+      baseURL: AZURE_OPENAI_TTS_ENDPOINT,
+      apiKey: AZURE_OPENAI_TTS_API_KEY,
+      defaultQuery: { 'api-version': AZURE_OPENAI_TTS_API_VERSION },
+      dangerouslyAllowBrowser: true
+    })
+
+    const response = await client.audio.speech.create({
+      model: AZURE_OPENAI_TTS_DEPLOYMENT_NAME,
+      voice: speaker,
+      input: text,
+      instructions: "日本人らしい発声を心がけてください。",
+    })
+
     // Blobデータとして取得
     const blobData = await response.blob()
-    
+
     return new Promise((resolve, reject) => {
       if (blobData) {
         // BlobからObjectURLを作成
         const blobUrl = URL.createObjectURL(blobData)
-        
+
         // Audio要素の生成
         const audioElement = document.createElement("audio")
         audioElement.id = "voicevox-audio"
@@ -109,28 +110,28 @@ export const playVoiceWithVOICEVOX = async (
         audioElement.muted = false
         audioElement.autoplay = true
         audioElement.volume = 1.0
-        
+
         // iOS向けの追加属性
         if (isIOS()) {
           audioElement.setAttribute('playsinline', 'true')
           audioElement.setAttribute('webkit-playsinline', 'true')
         }
-        
+
         // 既に同名の要素が存在する場合は、削除
         const existingElement = document.getElementById("voicevox-audio")
         if (existingElement) {
           existingElement.remove()
         }
-        
+
         // currentAudioに設定
         currentAudio = audioElement
-        
+
         // イベントリスナーの設定
         const handlePlay = () => {
-          console.log(`Playing voice for speaker ${speakerId} at volume:`, audioElement.volume)
+          console.log(`Playing voice for speaker ${speaker} at volume:`, audioElement.volume)
           onStart?.()
         }
-        
+
         const handleEnded = () => {
           console.log('Audio playback ended')
           // ObjectURLのクリーンアップ
@@ -141,7 +142,7 @@ export const playVoiceWithVOICEVOX = async (
           onEnd?.()
           resolve()
         }
-        
+
         const handleError = (error: any) => {
           console.error('Audio playback error:', error)
           // ObjectURLのクリーンアップ
@@ -152,14 +153,14 @@ export const playVoiceWithVOICEVOX = async (
           onEnd?.()
           reject(new Error(`Audio playback failed: ${error.message || 'Unknown error'}`))
         }
-        
+
         audioElement.addEventListener('play', handlePlay)
         audioElement.addEventListener('ended', handleEnded)
         audioElement.addEventListener('error', handleError)
-        
+
         // 要素追加
         document.body.appendChild(audioElement)
-        
+
         // 自動再生が失敗した場合の手動再生
         audioElement.play().catch((error) => {
           console.error('自動再生に失敗しました:', error)
@@ -180,17 +181,17 @@ export const playVoiceWithVOICEVOX = async (
 
 // 複数のメッセージを順次音声再生する関数
 export const playAssistantMessages = async (
-  messages: ConversationLog[], 
+  messages: ConversationLog[],
   onSpeakerStart?: (assistantId: string) => void,
   onSpeakerEnd?: (assistantId: string) => void
 ): Promise<void> => {
   for (const message of messages) {
     if (message.role === 'assistant' && message.speaker && message.content) {
       try {
-        const speakerId = getSpeakerIdByAssistant(message.speaker.name)
+        const speaker = getSpeakerByAssistant(message.speaker.name)
         await playVoiceWithVOICEVOX(
-          message.content, 
-          speakerId,
+          message.content,
+          speaker,
           () => onSpeakerStart?.(message.speaker!.id),
           () => onSpeakerEnd?.(message.speaker!.id)
         )
