@@ -17,8 +17,8 @@ const isIOS = (): boolean => {
   )
 }
 
-// 現在再生中のオーディオインスタンスを追跡
-let currentAudio: HTMLAudioElement | null = null
+// 現在再生中のBufferSourceを追跡
+let currentBufferSource: AudioBufferSourceNode | null = null
 
 // アシスタント名とspeaker IDのマッピング
 export const getSpeakerByAssistant = (assistantName: string): string => {
@@ -35,7 +35,17 @@ export const getSpeakerByAssistant = (assistantName: string): string => {
   }
 }
 
-// VOICEVOX APIを使用して音声を再生する関数
+// BlobをArrayBufferに変換する関数
+const blobToArrayBuffer = (blob: Blob): Promise<ArrayBuffer> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result as ArrayBuffer)
+    reader.onerror = () => reject(new Error('Failed to read blob as ArrayBuffer'))
+    reader.readAsArrayBuffer(blob)
+  })
+}
+
+// AudioContextを使用して音声を再生する関数
 export const playVoiceWithVOICEVOX = async (
   text: string,
   speaker: string,
@@ -45,21 +55,42 @@ export const playVoiceWithVOICEVOX = async (
   try {
     // iOS向けのオーディオコンテキスト確認
     const audioManager = AudioManager.getInstance()
-    console.log("isIOS(): ", isIOS())
-    if (isIOS() && !audioManager.isAudioUnlocked()) {
-      console.warn('iOS: Audio context is not unlocked. Voice playback may fail.')
-      // ユーザーに通知する場合はここで処理
-    }
-    // 前のオーディオインスタンスをクリーンアップ
-    if (currentAudio) {
-      currentAudio.pause()
-      currentAudio.src = ''
-      // 既存のaudio要素を削除
-      const existingAudio = document.getElementById("voicevox-audio")
-      if (existingAudio) {
-        existingAudio.remove()
+    
+    // iOSの場合、オーディオコンテキストが適切に初期化されているか確認
+    if (isIOS()) {
+      console.log('iOS detected, checking audio context status:', audioManager.getStatus())
+      
+      if (!audioManager.isAudioUnlocked()) {
+        console.error('iOS: Audio context is not unlocked. Voice playback will fail.')
+        throw new Error('Audio context not unlocked on iOS. User interaction required.')
       }
-      currentAudio = null
+    }
+
+    // 前のBufferSourceの状態をチェック（自然終了した場合は何もしない）
+    if (currentBufferSource) {
+      console.log('Previous BufferSource exists, but will be replaced after natural completion')
+      // 前の音声が自然に終了するのを待つため、ここでは停止しない
+    }
+
+    // AudioManagerからAudioContextを取得
+    const audioContext = audioManager.getAudioContext()
+    
+    // AudioContextの状態を確認し、必要に応じて再開
+    if (audioContext.state === 'suspended') {
+      console.log('AudioContext is suspended, attempting to resume...')
+      try {
+        await audioContext.resume()
+        // 少し待ってから状態を再確認
+        await new Promise(resolve => setTimeout(resolve, 100))
+        
+        if (audioContext.state as string !== 'running') {
+          throw new Error(`AudioContext failed to resume. State: ${audioContext.state}`)
+        }
+      } catch (resumeError: unknown) {
+        console.error('Failed to resume AudioContext:', resumeError)
+        const errorMessage = resumeError instanceof Error ? resumeError.message : 'Unknown error'
+        throw new Error(`AudioContext resume failed: ${errorMessage}`)
+      }
     }
 
     // デバッグ情報を出力
@@ -67,89 +98,146 @@ export const playVoiceWithVOICEVOX = async (
       text: text.substring(0, 50) + '...',
       speaker,
       isIOS: isIOS(),
-      userAgent: navigator.userAgent
+      userAgent: navigator.userAgent.substring(0, 100) + '...',
+      audioContextState: audioContext.state,
+      audioManagerStatus: audioManager.getStatus()
     })
-
-    // iOSの場合はプロキシ経由、それ以外は直接アクセス
-    let audioUrl: string
 
     // Azure OpenAI TTSを使用して音声を生成
     const blobData = await generateSpeechWithAzureOpenAI(text, speaker)
 
-    return new Promise((resolve, reject) => {
-      if (blobData) {
-        // BlobからObjectURLを作成
-        const blobUrl = URL.createObjectURL(blobData)
-
-        // Audio要素の生成
-        const audioElement = document.createElement("audio")
-        audioElement.id = "voicevox-audio"
-        audioElement.src = blobUrl
-        audioElement.controls = false
-        audioElement.muted = false
-        audioElement.autoplay = true
-        audioElement.volume = 1.0
-
-        // iOS向けの追加属性
-        if (isIOS()) {
-          audioElement.setAttribute('playsinline', 'true')
-          audioElement.setAttribute('webkit-playsinline', 'true')
+    return new Promise(async (resolve, reject) => {
+      try {
+        if (!blobData) {
+          reject(new Error('Failed to create blob data'))
+          return
         }
 
-        // 既に同名の要素が存在する場合は、削除
-        const existingElement = document.getElementById("voicevox-audio")
-        if (existingElement) {
-          existingElement.remove()
+        // BlobをArrayBufferに変換
+        const arrayBuffer = await blobToArrayBuffer(blobData)
+        console.log('ArrayBuffer created:', {
+          byteLength: arrayBuffer.byteLength,
+          speaker: speaker
+        })
+        
+        // ArrayBufferをAudioBufferにデコード
+        let audioBuffer: AudioBuffer
+        try {
+          audioBuffer = await audioContext.decodeAudioData(arrayBuffer)
+        } catch (decodeError) {
+          console.error('Failed to decode audio data:', decodeError)
+          reject(new Error('Audio decoding failed'))
+          return
         }
+        
+        console.log('AudioBuffer created:', {
+          duration: audioBuffer.duration,
+          sampleRate: audioBuffer.sampleRate,
+          numberOfChannels: audioBuffer.numberOfChannels,
+          length: audioBuffer.length,
+          speaker: speaker
+        })
+        
+        // BufferSourceNodeを作成
+        const bufferSource = audioContext.createBufferSource()
+        bufferSource.buffer = audioBuffer
+        
+        // 各BufferSource専用のGainNodeを作成
+        const localGainNode = audioContext.createGain()
+        
+        // iOS向けの音量調整（iOSでは音量が小さくなることがあるため）
+        const volume = isIOS() ? 1.0 : 1.0
+        localGainNode.gain.value = volume
+        
+        // 接続順序を明確にする
+        bufferSource.connect(localGainNode)
+        localGainNode.connect(audioContext.destination)
+        
+        console.log('BufferSource setup:', {
+          speaker: speaker,
+          gainValue: localGainNode.gain.value,
+          contextState: audioContext.state,
+          contextCurrentTime: audioContext.currentTime,
+          bufferDuration: audioBuffer.duration,
+          isIOS: isIOS()
+        })
+        
+        currentBufferSource = bufferSource
 
-        // currentAudioに設定
-        currentAudio = audioElement
-
-        // イベントリスナーの設定
-        const handlePlay = () => {
-          console.log(`Playing voice for speaker ${speaker} at volume:`, audioElement.volume)
+        // 再生開始イベント（即座に呼び出し）
+        const handleStart = () => {
+          console.log(`Playing voice for speaker ${speaker} at volume:`, localGainNode.gain.value)
           onStart?.()
         }
 
+        // 再生終了イベント
         const handleEnded = () => {
-          console.log('Audio playback ended')
-          // ObjectURLのクリーンアップ
-          URL.revokeObjectURL(blobUrl)
-          audioElement.removeEventListener('play', handlePlay)
-          audioElement.removeEventListener('ended', handleEnded)
-          audioElement.removeEventListener('error', handleError)
+          console.log(`Audio playback ended for speaker: ${speaker}`)
+          // BufferSourceとGainNodeをクリーンアップ
+          try {
+            bufferSource.disconnect()
+            localGainNode.disconnect()
+          } catch (disconnectError) {
+            console.log('Disconnect error (already disconnected):', disconnectError)
+          }
+          if (currentBufferSource === bufferSource) {
+            currentBufferSource = null
+          }
           onEnd?.()
           resolve()
         }
 
+        // エラーハンドリング
         const handleError = (error: any) => {
-          console.error('Audio playback error:', error)
-          // ObjectURLのクリーンアップ
-          URL.revokeObjectURL(blobUrl)
-          audioElement.removeEventListener('play', handlePlay)
-          audioElement.removeEventListener('ended', handleEnded)
-          audioElement.removeEventListener('error', handleError)
+          console.error(`Audio playback error for speaker ${speaker}:`, error)
+          // エラー時もクリーンアップ
+          try {
+            bufferSource.disconnect()
+            localGainNode.disconnect()
+          } catch (disconnectError) {
+            console.log('Disconnect error (already disconnected):', disconnectError)
+          }
+          if (currentBufferSource === bufferSource) {
+            currentBufferSource = null
+          }
           onEnd?.()
           reject(new Error(`Audio playback failed: ${error.message || 'Unknown error'}`))
         }
 
-        audioElement.addEventListener('play', handlePlay)
-        audioElement.addEventListener('ended', handleEnded)
-        audioElement.addEventListener('error', handleError)
+        // イベントリスナーの設定
+        bufferSource.onended = handleEnded
 
-        // 要素追加
-        document.body.appendChild(audioElement)
-
-        // 自動再生が失敗した場合の手動再生
-        audioElement.play().catch((error) => {
-          console.error('自動再生に失敗しました:', error)
-          if (error.name === 'NotAllowedError') {
-            console.warn('自動再生制限: ユーザーインタラクションが必要です')
+        try {
+          // 最終的なAudioContext状態確認
+          if (audioContext.state !== 'running') {
+            throw new Error(`AudioContext is not running: ${audioContext.state}`)
           }
-          handleError(error)
-        })
-      } else {
-        reject(new Error('Failed to create blob data'))
+          
+          // 再生開始
+          bufferSource.start(0)
+          handleStart() // 再生開始を即座に通知
+          
+          console.log('AudioContext playback started successfully', {
+            audioContextState: audioContext.state,
+            isUnlocked: audioManager.isAudioUnlocked(),
+            isIOS: isIOS(),
+            currentTime: audioContext.currentTime
+          })
+        } catch (startError) {
+          console.error('BufferSource start failed:', {
+            error: startError,
+            audioContextState: audioContext.state,
+            isUnlocked: audioManager.isAudioUnlocked(),
+            isIOS: isIOS(),
+            bufferDuration: audioBuffer.duration
+          })
+          handleError(startError)
+        }
+
+      } catch (error: unknown) {
+        console.error('AudioBuffer creation failed:', error)
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+        reject(new Error(`Failed to create AudioBuffer: ${errorMessage}`))
       }
     })
   } catch (error) {
