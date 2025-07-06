@@ -31,13 +31,6 @@ export function parseAssistantResponse(response: string, assistants: Assistant[]
 }
 
 /**
- * リフレクティングモードかどうかを判定する関数
- */
-export function shouldActivateReflecting(message: string): boolean {
-  return message.includes("リフレクティングを開始して下さい")
-}
-
-/**
  * 会話ログにシステムメッセージを追加する関数
  */
 export function addSystemMessage(

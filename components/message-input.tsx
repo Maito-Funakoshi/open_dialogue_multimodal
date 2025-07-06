@@ -9,7 +9,6 @@ import type { Assistant, ConversationLog } from "@/types/chat"
 import { generateOpenAIResponse } from "@/lib/openai"
 import {
   parseAssistantResponse,
-  shouldActivateReflecting,
   addSystemMessage,
   addUserMessage
 } from "@/lib/chat-utils"
@@ -114,27 +113,12 @@ export function MessageInput({
     setConversationLog(newLog)
 
     try {
-      // Check if reflecting mode should be activated
-      const shouldReflect = shouldActivateReflecting(message)
-      setIsReflecting(shouldReflect)
-
-      // Add reflecting started message if reflecting
-      if (shouldReflect) {
-        newLog = addSystemMessage(newLog, "----- Reflecting Started -----")
-        setConversationLog(newLog)
-      }
-
       // Call OpenAI API to generate assistant responses
-      const response = await generateOpenAIResponse(message, newLog, shouldReflect, userName, userGender)
+      const response = await generateOpenAIResponse(message, newLog, false, userName, userGender)
 
       // Parse and add assistant responses
       const assistantMessages = parseAssistantResponse(response, assistants)
       let updatedLog = [...newLog, ...assistantMessages]
-
-      // Add reflecting ended message if reflecting
-      if (shouldReflect) {
-        updatedLog = addSystemMessage(updatedLog, "----- Reflecting Ended -----")
-      }
 
       setConversationLog(updatedLog)
       setLatestResponse(response)
