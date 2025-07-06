@@ -1,6 +1,5 @@
 import type { ConversationLog } from "@/types/chat"
 import { AudioManager } from "./audio-manager"
-import { IOSAudioHelper } from "./ios-audio-helper"
 import AzureOpenAI from "openai"
 
 // 環境変数の取得
