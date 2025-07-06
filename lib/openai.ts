@@ -17,6 +17,12 @@ const AZURE_OPENAI_API_VERSION = process.env.NEXT_PUBLIC_AZURE_OPENAI_API_VERSIO
 const AZURE_OPENAI_ENDPOINT = process.env.NEXT_PUBLIC_AZURE_OPENAI_ENDPOINT!;
 const AZURE_DEPLOYMENT_NAME = process.env.NEXT_PUBLIC_AZURE_DEPLOYMENT_NAME!;
 
+// TTS関連の環境変数
+const AZURE_OPENAI_TTS_ENDPOINT = process.env.NEXT_PUBLIC_AZURE_OPENAI_TTS_ENDPOINT;
+const AZURE_OPENAI_TTS_API_KEY = process.env.NEXT_PUBLIC_AZURE_OPENAI_TTS_API_KEY;
+const AZURE_OPENAI_TTS_API_VERSION = process.env.NEXT_PUBLIC_AZURE_OPENAI_TTS_API_VERSION;
+const AZURE_OPENAI_TTS_DEPLOYMENT_NAME = process.env.NEXT_PUBLIC_AZURE_OPENAI_TTS_DEPLOYMENT_NAME || "";
+
 const CHARACTERS = {
     [ASSISTANTS[0].name]: ASSISTANTS[0].character,
     [ASSISTANTS[1].name]: ASSISTANTS[1].character,
@@ -275,4 +281,30 @@ export async function generateOpenAIResponse(
     }
 
     return allResponses;
+}
+
+// TTS用のAzure OpenAI clientを作成して音声を生成する関数
+export async function generateSpeechWithAzureOpenAI(
+    text: string,
+    speaker: string,
+    instructions: string = "日本人らしい発声を心がけてください。"
+): Promise<Blob> {
+    const client = new AzureOpenAI({
+        baseURL: AZURE_OPENAI_TTS_ENDPOINT,
+        apiKey: AZURE_OPENAI_TTS_API_KEY,
+        defaultQuery: { 'api-version': AZURE_OPENAI_TTS_API_VERSION },
+        dangerouslyAllowBrowser: true
+    });
+
+    const response = await client.audio.speech.create({
+        model: AZURE_OPENAI_TTS_DEPLOYMENT_NAME,
+        voice: speaker,
+        speed: 0.25, // 値を変えても何故かスピード変わらない
+        instructions: instructions,
+        input: text,
+    });
+
+    // Blobデータとして取得
+    const blobData = await response.blob();
+    return blobData;
 }

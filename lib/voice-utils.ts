@@ -1,12 +1,6 @@
 import type { ConversationLog } from "@/types/chat"
 import { AudioManager } from "./audio-manager"
-import AzureOpenAI from "openai"
-
-// 環境変数の取得
-const AZURE_OPENAI_TTS_ENDPOINT = process.env.NEXT_PUBLIC_AZURE_OPENAI_TTS_ENDPOINT
-const AZURE_OPENAI_TTS_API_KEY = process.env.NEXT_PUBLIC_AZURE_OPENAI_TTS_API_KEY
-const AZURE_OPENAI_TTS_API_VERSION = process.env.NEXT_PUBLIC_AZURE_OPENAI_TTS_API_VERSION
-const AZURE_OPENAI_TTS_DEPLOYMENT_NAME = process.env.NEXT_PUBLIC_AZURE_OPENAI_TTS_DEPLOYMENT_NAME || ""
+import { generateSpeechWithAzureOpenAI } from "./openai"
 
 // iOS/iPadOS検出ヘルパー関数（iPadOS 13以降対応）
 const isIOS = (): boolean => {
@@ -79,22 +73,8 @@ export const playVoiceWithVOICEVOX = async (
     // iOSの場合はプロキシ経由、それ以外は直接アクセス
     let audioUrl: string
 
-    const client = new AzureOpenAI({
-      baseURL: AZURE_OPENAI_TTS_ENDPOINT,
-      apiKey: AZURE_OPENAI_TTS_API_KEY,
-      defaultQuery: { 'api-version': AZURE_OPENAI_TTS_API_VERSION },
-      dangerouslyAllowBrowser: true
-    })
-
-    const response = await client.audio.speech.create({
-      model: AZURE_OPENAI_TTS_DEPLOYMENT_NAME,
-      voice: speaker,
-      input: text,
-      instructions: "日本人らしい発声を心がけてください。",
-    })
-
-    // Blobデータとして取得
-    const blobData = await response.blob()
+    // Azure OpenAI TTSを使用して音声を生成
+    const blobData = await generateSpeechWithAzureOpenAI(text, speaker)
 
     return new Promise((resolve, reject) => {
       if (blobData) {

@@ -251,7 +251,7 @@ export function MessageInput({
               onChange={(e) => setMessage(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder={inputPlaceholder}
-              className="h-16 md:h-24 text-gray-900 placeholder-gray-500 pr-4 text-sm md:text-base rounded-xl border-2 border-gray-200 focus:border-blue-400 focus:ring-0 shadow-sm resize-none"
+              className="h-16 md:h-24 text-gray-900 placeholder-gray-500 pr-4 text-sm md:text-base rounded-xl border-2 border-gray-200 focus:border-green-600 focus:ring-0 shadow-sm resize-none"
               disabled={isLoading}
             />
           </div>
