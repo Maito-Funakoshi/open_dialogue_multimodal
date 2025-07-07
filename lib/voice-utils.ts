@@ -85,7 +85,7 @@ export const playVoiceWithVOICEVOX = async (
         const audioElement = document.createElement("audio")
         audioElement.id = "voicevox-audio"
         audioElement.src = blobUrl
-        audioElement.controls = false
+        audioElement.controls = true
         audioElement.muted = false
         audioElement.autoplay = true
         audioElement.volume = 1.0
@@ -138,7 +138,9 @@ export const playVoiceWithVOICEVOX = async (
         audioElement.addEventListener('error', handleError)
 
         // 要素追加
-        document.body.appendChild(audioElement)
+        // document.body.appendChild(audioElement)
+
+        document.getElementById("audio-here")?.appendChild(audioElement)
 
         // 自動再生が失敗した場合の手動再生
         audioElement.play().catch((error) => {
@@ -158,7 +160,74 @@ export const playVoiceWithVOICEVOX = async (
   }
 }
 
-// 複数のメッセージを順次音声再生する関数
+// 保存済み音声データから音声を再生する関数
+export const playStoredAudio = async (
+  audioData: string,
+  onStart?: () => void,
+  onEnd?: () => void
+): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    try {
+      const audio = new Audio(audioData)
+      audio.preload = 'metadata'
+      
+      const handlePlay = () => {
+        onStart?.()
+      }
+      
+      const handleEnded = () => {
+        audio.removeEventListener('play', handlePlay)
+        audio.removeEventListener('ended', handleEnded)
+        audio.removeEventListener('error', handleError)
+        onEnd?.()
+        resolve()
+      }
+      
+      const handleError = (error: any) => {
+        console.error('Audio playback error:', error)
+        audio.removeEventListener('play', handlePlay)
+        audio.removeEventListener('ended', handleEnded)
+        audio.removeEventListener('error', handleError)
+        onEnd?.()
+        reject(error)
+      }
+      
+      audio.addEventListener('play', handlePlay)
+      audio.addEventListener('ended', handleEnded)
+      audio.addEventListener('error', handleError)
+      
+      audio.play().catch(handleError)
+    } catch (error) {
+      console.error('Failed to create audio element:', error)
+      reject(error)
+    }
+  })
+}
+
+// 複数のメッセージを順次音声再生する関数（保存済み音声データを使用）
+export const playStoredAssistantMessages = async (
+  messages: ConversationLog[],
+  onSpeakerStart?: (assistantId: string) => void,
+  onSpeakerEnd?: (assistantId: string) => void
+): Promise<void> => {
+  for (const message of messages) {
+    if (message.role === 'assistant' && message.speaker && message.audioData) {
+      try {
+        await playStoredAudio(
+          message.audioData,
+          () => onSpeakerStart?.(message.speaker!.id),
+          () => onSpeakerEnd?.(message.speaker!.id)
+        )
+      } catch (error) {
+        console.error(`Failed to play stored audio for ${message.speaker.name}:`, error)
+        // Continue with next message even if one fails
+        onSpeakerEnd?.(message.speaker.id)
+      }
+    }
+  }
+}
+
+// 複数のメッセージを順次音声再生する関数（従来の方法）
 export const playAssistantMessages = async (
   messages: ConversationLog[],
   onSpeakerStart?: (assistantId: string) => void,
@@ -180,6 +249,19 @@ export const playAssistantMessages = async (
         onSpeakerEnd?.(message.speaker.id)
       }
     }
+  }
+}
+
+// 音声再生を安全に実行する関数（保存済み音声データを使用）
+export const safePlayStoredAssistantMessages = (
+  messages: ConversationLog[],
+  onSpeakerStart?: (assistantId: string) => void,
+  onSpeakerEnd?: (assistantId: string) => void
+): void => {
+  if (messages.length > 0) {
+    playStoredAssistantMessages(messages, onSpeakerStart, onSpeakerEnd).catch((error) => {
+      console.error("Stored voice playback failed:", error)
+    })
   }
 }
 
