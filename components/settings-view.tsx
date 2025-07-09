@@ -65,7 +65,7 @@ export function SettingsView({
     setUserGender(tempUserGender)
 
     localStorage.setItem("userName", tempUserName.trim())
-    localStorage.setItem("gender",tempUserGender)
+    localStorage.setItem("gender", tempUserGender)
 
 
     alert("設定を保存しました")
@@ -94,13 +94,13 @@ export function SettingsView({
 
   const handleToggleAudioPermission = async () => {
     setIsInitializingAudio(true)
-    
+
     try {
       if (!audioPermission) {
         // 音声を有効にする
         const audioManager = AudioManager.getInstance()
         const success = await audioManager.initializeAudioContext()
-        
+
         if (success) {
           localStorage.setItem("audioPermissionGranted", "true")
           localStorage.setItem("audioPermissionTimestamp", Date.now().toString())
@@ -114,9 +114,9 @@ export function SettingsView({
         localStorage.setItem("audioPermissionGranted", "false")
         localStorage.setItem("audioPermissionTimestamp", Date.now().toString())
         setAudioPermission(false)
-        // ページをリロードして音声設定をリセット
-        window.location.reload()
       }
+      // ページをリロードして音声設定をリセット
+      window.location.reload()
     } catch (error) {
       console.error("Failed to toggle audio permission:", error)
       alert("設定の変更に失敗しました")
