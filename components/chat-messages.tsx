@@ -39,7 +39,19 @@ export function ChatMessages({ conversationLog, assistants, isReflecting }: Chat
                     <Image src={"./" + log.speaker?.id + ".png"} width={100} height={100} alt={String(index)} className="rounded-full"></Image>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs md:text-sm text-gray-600 mb-1">{log.speaker?.name || "アシスタント"}</div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="text-xs md:text-sm text-gray-600">{log.speaker?.name || "アシスタント"}</div>
+                      {log.audioData && (
+                        <audio 
+                          controls 
+                          className="h-6 md:h-8"
+                          preload="metadata"
+                        >
+                          <source src={log.audioData} type="audio/mpeg" />
+                          Your browser does not support the audio element.
+                        </audio>
+                      )}
+                    </div>
                     <div className="bg-white border border-gray-200 rounded-lg p-2 md:p-3 text-gray-800 text-sm md:text-base break-words whitespace-pre-wrap">{log.content}</div>
                   </div>
                 </div>

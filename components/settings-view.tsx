@@ -6,8 +6,9 @@ import { useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { SidebarTrigger } from "@/components/ui/sidebar"
-import { Save, User, Users, Trash2, Database, UserPen } from "lucide-react"
+import { Save, User, Users, Trash2, Database, UserPen, Volume2, VolumeX } from "lucide-react"
 import { CONVERSATION_LOG_KEY } from "@/lib/config"
+import { AudioManager } from "@/lib/audio-manager"
 
 
 interface SettingsViewProps {
@@ -30,6 +31,8 @@ export function SettingsView({
   const [tempUserName, setTempUserName] = useState(userName)
   const [tempUserGender, setTempUserGender] = useState(userGender)
   const [hasChanges, setHasChanges] = useState(false)
+  const [audioPermission, setAudioPermission] = useState<boolean>(false)
+  const [isInitializingAudio, setIsInitializingAudio] = useState(false)
   const router = useRouter()
 
 
@@ -43,6 +46,14 @@ export function SettingsView({
     const genderChanged = tempUserGender !== userGender
     setHasChanges(nameChanged || genderChanged)
   }, [tempUserName, tempUserGender, userName, userGender])
+
+  // 音声許可状態を読み込む
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const permission = localStorage.getItem("audioPermissionGranted")
+      setAudioPermission(permission === "true")
+    }
+  }, [])
 
   const handleSave = () => {
     if (!tempUserName.trim()) {
@@ -78,6 +89,39 @@ export function SettingsView({
           alert("対話履歴の削除に失敗しました")
         }
       }
+    }
+  }
+
+  const handleToggleAudioPermission = async () => {
+    setIsInitializingAudio(true)
+    
+    try {
+      if (!audioPermission) {
+        // 音声を有効にする
+        const audioManager = AudioManager.getInstance()
+        const success = await audioManager.initializeAudioContext()
+        
+        if (success) {
+          localStorage.setItem("audioPermissionGranted", "true")
+          localStorage.setItem("audioPermissionTimestamp", Date.now().toString())
+          setAudioPermission(true)
+          alert("音声が有効になりました")
+        } else {
+          alert("音声の初期化に失敗しました。もう一度お試しください。")
+        }
+      } else {
+        // 音声を無効にする
+        localStorage.setItem("audioPermissionGranted", "false")
+        localStorage.setItem("audioPermissionTimestamp", Date.now().toString())
+        setAudioPermission(false)
+        // ページをリロードして音声設定をリセット
+        window.location.reload()
+      }
+    } catch (error) {
+      console.error("Failed to toggle audio permission:", error)
+      alert("設定の変更に失敗しました")
+    } finally {
+      setIsInitializingAudio(false)
     }
   }
 
@@ -196,6 +240,48 @@ export function SettingsView({
               </Button>
             </div>
           )}
+
+          {/* Audio Settings */}
+          <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6 shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <Volume2 className="w-5 h-5 text-purple-500" />
+              <h2 className="text-base md:text-lg font-semibold text-gray-800">音声設定</h2>
+            </div>
+            <p className="text-xs md:text-sm text-gray-600 mb-4 md:mb-6">
+              AIアシスタントの音声読み上げ機能を管理できます。
+            </p>
+
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                <div>
+                  <h3 className="text-sm font-medium text-gray-800">音声自動再生</h3>
+                  <p className="text-xs text-gray-600 mt-1">
+                    現在の状態: {audioPermission ? "有効" : "無効"}
+                  </p>
+                </div>
+                <Button
+                  variant={audioPermission ? "outline" : "default"}
+                  onClick={handleToggleAudioPermission}
+                  disabled={isInitializingAudio}
+                  className="px-4 md:px-6 w-full sm:w-auto"
+                >
+                  {isInitializingAudio ? (
+                    <>処理中...</>
+                  ) : audioPermission ? (
+                    <>
+                      <VolumeX className="w-4 h-4 mr-2" />
+                      音声を無効にする
+                    </>
+                  ) : (
+                    <>
+                      <Volume2 className="w-4 h-4 mr-2" />
+                      音声を有効にする
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
 
           {/* Data Management */}
           <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6 shadow-sm">
