@@ -9,10 +9,11 @@ import type { Assistant, ConversationLog } from "@/types/chat"
 import { generateOpenAIResponse } from "@/lib/openai"
 import {
   parseAssistantResponse,
+  parseAssistantResponseWithAudio,
   addSystemMessage,
   addUserMessage
 } from "@/lib/chat-utils"
-import { safePlayAssistantMessages } from "@/lib/voice-utils"
+import { safePlayAssistantMessages, safePlayStoredAssistantMessages } from "@/lib/voice-utils"
 import { AudioManager } from "@/lib/audio-manager"
 
 interface MessageInputProps {
@@ -116,15 +117,15 @@ export function MessageInput({
       // Call OpenAI API to generate assistant responses
       const response = await generateOpenAIResponse(message, newLog, false, userName, userGender)
 
-      // Parse and add assistant responses
-      const assistantMessages = parseAssistantResponse(response, assistants)
+      // Parse and add assistant responses with audio
+      const assistantMessages = await parseAssistantResponseWithAudio(response, assistants)
       let updatedLog = [...newLog, ...assistantMessages]
 
       setConversationLog(updatedLog)
       setLatestResponse(response)
 
-      // 音声再生を実行（非同期で実行し、エラーがあっても処理を継続）
-      safePlayAssistantMessages(
+      // 音声再生を実行（保存済み音声データを使用）
+      safePlayStoredAssistantMessages(
         assistantMessages,
         (assistantId) => setCurrentSpeakingAssistant?.(assistantId),
         (assistantId) => setCurrentSpeakingAssistant?.(null)
@@ -199,8 +200,8 @@ export function MessageInput({
       // Call OpenAI API to generate assistant responses
       const response = await generateOpenAIResponse(reflectingMessage, newLog, true, userName, userGender)
 
-      // Parse and add assistant responses
-      const assistantMessages = parseAssistantResponse(response, assistants)
+      // Parse and add assistant responses with audio
+      const assistantMessages = await parseAssistantResponseWithAudio(response, assistants)
       let updatedLog = [...newLog, ...assistantMessages]
 
       // Add reflecting ended message
@@ -209,8 +210,8 @@ export function MessageInput({
       setConversationLog(updatedLog)
       setLatestResponse(response)
 
-      // 音声再生を実行（非同期で実行し、エラーがあっても処理を継続）
-      safePlayAssistantMessages(
+      // 音声再生を実行（保存済み音声データを使用）
+      safePlayStoredAssistantMessages(
         assistantMessages,
         (assistantId) => setCurrentSpeakingAssistant?.(assistantId),
         (assistantId) => setCurrentSpeakingAssistant?.(null)

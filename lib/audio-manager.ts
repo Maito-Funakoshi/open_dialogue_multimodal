@@ -3,6 +3,10 @@ export class AudioManager {
   private static instance: AudioManager
   private audioContext: AudioContext | null = null
   private isUnlocked = false
+  private audioPool: HTMLAudioElement[] = []
+  private audioPoolSize = 10 // 音声プールのサイズ
+  private currentPoolIndex = 0
+  private isAudioPermissionGranted = false
   
   private constructor() {}
   
@@ -58,5 +62,103 @@ export class AudioManager {
   // ユーザーインタラクション時に呼び出す
   async handleUserInteraction(): Promise<void> {
     await this.unlockAudioContext()
+  }
+
+  // 音声プールを初期化（ユーザーインタラクション時に呼び出す）
+  async initializeAudioPool(): Promise<boolean> {
+    try {
+      console.log('Initializing audio pool...')
+      
+      // 既存のプールをクリア
+      this.clearAudioPool()
+      
+      // 複数のaudio要素を作成して準備
+      for (let i = 0; i < this.audioPoolSize; i++) {
+        const audio = new Audio()
+        
+        // iOS向けの属性設定
+        audio.setAttribute('playsinline', 'true')
+        audio.setAttribute('webkit-playsinline', 'true')
+        audio.preload = 'auto'
+        audio.volume = 1.0
+        
+        // 無音のデータURIを設定して「触る」
+        const silentDataUri = 'data:audio/mp3;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEJhbmsuY29tIC8gTGFTb25vdGhlcXVlLm9yZwBURU5DAAAAHQAAA1N3aXRjaCBQbHVzIMKpIE5DSCBTb2Z0d2FyZQBUSVQyAAAABgAAAzIyMzUAVFNTRQAAAA8AAANMYXZmNTcuODMuMTAwAAAAAAAAAAAAAAD/80DEAAAAA0gAAAAATEFNRTMuMTAwVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQsRbAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQMSkAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV'
+        audio.src = silentDataUri
+        
+        // 音声を「触る」ためにplay()を呼び出し
+        try {
+          audio.muted = true // 最初はミュートで再生
+          await audio.play()
+          audio.pause()
+          audio.currentTime = 0
+          audio.muted = false // ミュート解除
+        } catch (error) {
+          console.warn(`Failed to initialize audio element ${i}:`, error)
+        }
+        
+        this.audioPool.push(audio)
+      }
+      
+      console.log(`Audio pool initialized with ${this.audioPool.length} elements`)
+      this.isAudioPermissionGranted = true
+      return true
+    } catch (error) {
+      console.error('Failed to initialize audio pool:', error)
+      return false
+    }
+  }
+
+  // 音声プールから次の利用可能なaudio要素を取得
+  getPooledAudioElement(): HTMLAudioElement | null {
+    if (this.audioPool.length === 0) {
+      console.warn('Audio pool is empty')
+      return null
+    }
+    
+    const audio = this.audioPool[this.currentPoolIndex]
+    this.currentPoolIndex = (this.currentPoolIndex + 1) % this.audioPool.length
+    
+    // 既存の音声をクリア
+    audio.pause()
+    audio.currentTime = 0
+    audio.src = ''
+    
+    return audio
+  }
+
+  // 音声プールをクリア
+  clearAudioPool(): void {
+    this.audioPool.forEach(audio => {
+      audio.pause()
+      audio.src = ''
+      audio.remove()
+    })
+    this.audioPool = []
+    this.currentPoolIndex = 0
+  }
+
+  // 音声許可が付与されているかチェック
+  checkAudioPermission(): boolean {
+    if (typeof window === 'undefined') return false
+    
+    const permission = localStorage.getItem('audioPermissionGranted')
+    return permission === 'true' && this.isAudioPermissionGranted
+  }
+
+  // 初期化メソッド（音声許可モーダルから呼び出される）
+  async initializeAudioContext(): Promise<boolean> {
+    try {
+      // オーディオコンテキストを解除
+      await this.unlockAudioContext()
+      
+      // 音声プールを初期化
+      const poolInitialized = await this.initializeAudioPool()
+      
+      return this.isUnlocked && poolInitialized
+    } catch (error) {
+      console.error('Failed to initialize audio context:', error)
+      return false
+    }
   }
 }

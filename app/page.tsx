@@ -6,9 +6,11 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { HomeView } from "@/components/home-view"
 import { ChatView } from "@/components/chat-view"
 import { SettingsView } from "@/components/settings-view"
+import { AudioPermissionModal } from "@/components/audio-permission-modal"
 import type { ConversationLog } from "@/types/chat"
 import { ASSISTANTS, USER, GENDER, CONVERSATION_LOG_KEY } from "@/lib/config"
 import { MessageInput } from "@/components/message-input"
+import { AudioManager } from "@/lib/audio-manager"
 
 export default function Home() {
   const [currentView, setCurrentView] = useState<"home" | "chat" | "settings">("home")
@@ -20,6 +22,7 @@ export default function Home() {
   const [isReady, setIsReady] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [currentSpeakingAssistant, setCurrentSpeakingAssistant] = useState<string | null>(null)
+  const [showAudioPermissionModal, setShowAudioPermissionModal] = useState(false)
   
   // User settings state
   const [userName, setUserName] = useState<string>(USER)
@@ -27,10 +30,11 @@ export default function Home() {
 
   const genderscript = userGender != "未回答" ? `${userGender}の` : ""
 
-    // Load user settings from localStorage on component mount
+  // Load user settings and check audio permission on component mount
   // このuseEffectがクライアントサイドでのみ実行される
   useEffect(() => {
     if (typeof window !== "undefined") {
+      // ユーザー設定の読み込み
       const savedUserName = localStorage.getItem("userName")
       const savedUserGender = localStorage.getItem("gender")
       if (savedUserName) {
@@ -38,6 +42,23 @@ export default function Home() {
       }
       if (savedUserGender) {
         setUserGender(savedUserGender)
+      }
+      
+      // 音声許可のチェック
+      const audioPermission = localStorage.getItem("audioPermissionGranted")
+      const permissionTimestamp = localStorage.getItem("audioPermissionTimestamp")
+      
+      if (!audioPermission) {
+        // 初回起動時：音声許可モーダルを表示
+        setShowAudioPermissionModal(true)
+      } else if (audioPermission === "true") {
+        // 許可済みの場合：音声コンテキストを初期化
+        const audioManager = AudioManager.getInstance()
+        audioManager.initializeAudioContext().then((success) => {
+          if (!success) {
+            console.warn("Failed to initialize audio context on app load")
+          }
+        })
       }
     }
   }, [])
@@ -78,9 +99,27 @@ ${userName}さんは${genderscript}クライアントで${ASSISTANTS[0].name}、
     }
   }
 
+  // 音声許可モーダルのハンドラー
+  const handleAudioPermissionGranted = () => {
+    setShowAudioPermissionModal(false)
+    console.log("Audio permission granted")
+  }
+
+  const handleAudioPermissionDenied = () => {
+    setShowAudioPermissionModal(false)
+    console.log("Audio permission denied")
+  }
+
   return (
     <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen}>
       <div className="flex min-h-screen w-full relative">
+        {/* Audio Permission Modal */}
+        <AudioPermissionModal
+          isOpen={showAudioPermissionModal}
+          onPermissionGranted={handleAudioPermissionGranted}
+          onPermissionDenied={handleAudioPermissionDenied}
+        />
+        
         {/* Desktop sidebar - always visible on desktop */}
         <div className="hidden md:block">
           <AppSidebar 
