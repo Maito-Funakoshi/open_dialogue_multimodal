@@ -161,4 +161,14 @@ export class AudioManager {
       return false
     }
   }
+
+  // AudioContextを取得（他のモジュールと共有するため）
+  getAudioContext(): AudioContext | null {
+    return this.audioContext
+  }
+
+  // AudioContextの状態を確認
+  isAudioContextActive(): boolean {
+    return this.audioContext !== null && this.audioContext.state === 'running'
+  }
 }

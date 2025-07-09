@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Volume2, VolumeX } from "lucide-react"
 import { AudioManager } from "@/lib/audio-manager"
+import { initializeVoicePlayerAfterAudioPermission } from "@/lib/voice-utils"
 
 interface AudioPermissionModalProps {
   isOpen: boolean
@@ -25,13 +26,22 @@ export function AudioPermissionModal({
     try {
       // AudioManagerを使って音声コンテキストを完全に解除
       const audioManager = AudioManager.getInstance()
-      const success = await audioManager.initializeAudioContext()
+      const audioManagerSuccess = await audioManager.initializeAudioContext()
       
-      if (success) {
-        // 音声許可をlocalStorageに保存
-        localStorage.setItem("audioPermissionGranted", "true")
-        localStorage.setItem("audioPermissionTimestamp", Date.now().toString())
-        onPermissionGranted()
+      if (audioManagerSuccess) {
+        // AdvancedVoicePlayerも初期化
+        const voicePlayerSuccess = await initializeVoicePlayerAfterAudioPermission()
+        
+        if (voicePlayerSuccess) {
+          // 音声許可をlocalStorageに保存
+          localStorage.setItem("audioPermissionGranted", "true")
+          localStorage.setItem("audioPermissionTimestamp", Date.now().toString())
+          console.log("Audio permission granted and both audio systems initialized")
+          onPermissionGranted()
+        } else {
+          console.error("Failed to initialize voice player")
+          onPermissionDenied()
+        }
       } else {
         console.error("Failed to initialize audio context")
         onPermissionDenied()
@@ -52,7 +62,7 @@ export function AudioPermissionModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={() => {}}>
-      <DialogContent className="sm:max-w-md" onPointerDownOutside={(e) => e.preventDefault()}>
+      <DialogContent className="w-[80vw] sm:max-w-md" onPointerDownOutside={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Volume2 className="h-5 w-5" />
