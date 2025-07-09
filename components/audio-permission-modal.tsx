@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Volume2, VolumeX } from "lucide-react"
 import { AudioManager } from "@/lib/audio-manager"
 import { initializeVoicePlayerAfterAudioPermission } from "@/lib/voice-utils"
+import { setAudioPermission } from "@/lib/cookie-utils"
 
 interface AudioPermissionModalProps {
   isOpen: boolean
@@ -33,9 +34,8 @@ export function AudioPermissionModal({
         const voicePlayerSuccess = await initializeVoicePlayerAfterAudioPermission()
         
         if (voicePlayerSuccess) {
-          // 音声許可をlocalStorageに保存
-          localStorage.setItem("audioPermissionGranted", "true")
-          localStorage.setItem("audioPermissionTimestamp", Date.now().toString())
+          // 音声許可をCookieに保存（24時間有効）
+          setAudioPermission(true)
           console.log("Audio permission granted and both audio systems initialized")
           onPermissionGranted()
         } else {
@@ -55,8 +55,7 @@ export function AudioPermissionModal({
   }
 
   const handleDenyAudio = () => {
-    localStorage.setItem("audioPermissionGranted", "false")
-    localStorage.setItem("audioPermissionTimestamp", Date.now().toString())
+    setAudioPermission(false)
     onPermissionDenied()
   }
 

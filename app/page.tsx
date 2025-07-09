@@ -11,6 +11,7 @@ import type { ConversationLog } from "@/types/chat"
 import { ASSISTANTS, USER, GENDER, CONVERSATION_LOG_KEY } from "@/lib/config"
 import { MessageInput } from "@/components/message-input"
 import { AudioManager } from "@/lib/audio-manager"
+import { getAudioPermission } from "@/lib/cookie-utils"
 
 export default function Home() {
   const [currentView, setCurrentView] = useState<"home" | "chat" | "settings">("home")
@@ -44,14 +45,13 @@ export default function Home() {
         setUserGender(savedUserGender)
       }
       
-      // 音声許可のチェック
-      const audioPermission = localStorage.getItem("audioPermissionGranted")
-      const permissionTimestamp = localStorage.getItem("audioPermissionTimestamp")
+      // 音声許可のチェック（Cookie、24時間有効）
+      const audioPermission = getAudioPermission()
       
-      if (!audioPermission) {
-        // 初回起動時：音声許可モーダルを表示
+      if (audioPermission === null) {
+        // 初回起動時または期限切れ：音声許可モーダルを表示
         setShowAudioPermissionModal(true)
-      } else if (audioPermission === "true") {
+      } else if (audioPermission === true) {
         // 許可済みの場合：音声コンテキストを初期化
         const audioManager = AudioManager.getInstance()
         audioManager.initializeAudioContext().then((success) => {

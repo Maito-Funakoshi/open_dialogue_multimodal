@@ -142,8 +142,10 @@ export class AudioManager {
   checkAudioPermission(): boolean {
     if (typeof window === 'undefined') return false
     
-    const permission = localStorage.getItem('audioPermissionGranted')
-    return permission === 'true' && this.isAudioPermissionGranted
+    // Cookieから24時間有効な音声許可を取得
+    const { getAudioPermission } = require('./cookie-utils')
+    const permission = getAudioPermission()
+    return permission === true && this.isAudioPermissionGranted
   }
 
   // 初期化メソッド（音声許可モーダルから呼び出される）

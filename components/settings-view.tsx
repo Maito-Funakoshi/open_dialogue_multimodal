@@ -9,6 +9,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Save, User, Users, Trash2, Database, UserPen, Volume2, VolumeX } from "lucide-react"
 import { CONVERSATION_LOG_KEY } from "@/lib/config"
 import { AudioManager } from "@/lib/audio-manager"
+import { getAudioPermission, setAudioPermission } from "@/lib/cookie-utils"
 
 
 interface SettingsViewProps {
@@ -47,12 +48,10 @@ export function SettingsView({
     setHasChanges(nameChanged || genderChanged)
   }, [tempUserName, tempUserGender, userName, userGender])
 
-  // 音声許可状態を読み込む
+  // 音声許可状態を読み込む（Cookie、24時間有効）
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const permission = localStorage.getItem("audioPermissionGranted")
-      setAudioPermission(permission === "true")
-    }
+    const permission = getAudioPermission()
+    setAudioPermission(permission === true)
   }, [])
 
   const handleSave = () => {
@@ -102,8 +101,6 @@ export function SettingsView({
         const success = await audioManager.initializeAudioContext()
         
         if (success) {
-          localStorage.setItem("audioPermissionGranted", "true")
-          localStorage.setItem("audioPermissionTimestamp", Date.now().toString())
           setAudioPermission(true)
           alert("音声が有効になりました")
         } else {
@@ -111,8 +108,6 @@ export function SettingsView({
         }
       } else {
         // 音声を無効にする
-        localStorage.setItem("audioPermissionGranted", "false")
-        localStorage.setItem("audioPermissionTimestamp", Date.now().toString())
         setAudioPermission(false)
         // ページをリロードして音声設定をリセット
         window.location.reload()
