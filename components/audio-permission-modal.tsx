@@ -51,6 +51,8 @@ export function AudioPermissionModal({
       onPermissionDenied()
     } finally {
       setIsProcessing(false)
+      // ページをリロードして音声設定をリセット
+      window.location.reload()
     }
   }
 
