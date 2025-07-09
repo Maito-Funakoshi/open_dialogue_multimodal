@@ -1,6 +1,7 @@
 import type { ConversationLog } from "@/types/chat"
 import { AudioManager } from "./audio-manager"
 import { generateSpeechWithAzureOpenAI } from "./openai"
+import { getAudioPermission } from "./cookie-utils"
 
 // アシスタント名と音声IDのマッピング
 const VOICE_MAP: Record<string, string> = {
@@ -68,7 +69,7 @@ class AdvancedVoicePlayer {
 
       // GainNodeを作成
       this.gainNode = this.audioContext.createGain()
-      this.gainNode.gain.value = 1.0
+      this.gainNode.gain.value = getAudioPermission() ? 1.0 : 0.0
       this.gainNode.connect(this.audioContext.destination)
 
       console.log("AdvancedVoicePlayer initialized with shared AudioContext")

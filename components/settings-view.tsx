@@ -32,7 +32,7 @@ export function SettingsView({
   const [tempUserName, setTempUserName] = useState(userName)
   const [tempUserGender, setTempUserGender] = useState(userGender)
   const [hasChanges, setHasChanges] = useState(false)
-  const [audioPermission, setAudioPermission] = useState<boolean>(false)
+  const [audioPermissionFlag, setAudioPermissionFlag] = useState<boolean>(false)
   const [isInitializingAudio, setIsInitializingAudio] = useState(false)
   const router = useRouter()
 
@@ -52,6 +52,7 @@ export function SettingsView({
   useEffect(() => {
     const permission = getAudioPermission()
     setAudioPermission(permission === true)
+    setAudioPermissionFlag(permission == true)
   }, [])
 
   const handleSave = () => {
@@ -95,13 +96,14 @@ export function SettingsView({
     setIsInitializingAudio(true)
 
     try {
-      if (!audioPermission) {
+      if (!audioPermissionFlag) {
         // 音声を有効にする
         const audioManager = AudioManager.getInstance()
         const success = await audioManager.initializeAudioContext()
 
         if (success) {
           setAudioPermission(true)
+          setAudioPermissionFlag(true)
           alert("音声が有効になりました")
         } else {
           alert("音声の初期化に失敗しました。もう一度お試しください。")
@@ -109,6 +111,7 @@ export function SettingsView({
       } else {
         // 音声を無効にする
         setAudioPermission(false)
+        setAudioPermissionFlag(false)
       }
       // ページをリロードして音声設定をリセット
       window.location.reload()
@@ -251,18 +254,18 @@ export function SettingsView({
                 <div>
                   <h3 className="text-sm font-medium text-gray-800">音声自動再生</h3>
                   <p className="text-xs text-gray-600 mt-1">
-                    現在の状態: {audioPermission ? "有効" : "無効"}
+                    現在の状態: {audioPermissionFlag ? "有効" : "無効"}
                   </p>
                 </div>
                 <Button
-                  variant={audioPermission ? "outline" : "default"}
+                  variant={audioPermissionFlag ? "outline" : "default"}
                   onClick={handleToggleAudioPermission}
                   disabled={isInitializingAudio}
                   className="px-4 md:px-6 w-full sm:w-auto"
                 >
                   {isInitializingAudio ? (
                     <>処理中...</>
-                  ) : audioPermission ? (
+                  ) : audioPermissionFlag ? (
                     <>
                       <VolumeX className="w-4 h-4 mr-2" />
                       音声を無効にする
