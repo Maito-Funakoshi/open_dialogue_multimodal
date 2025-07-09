@@ -35,7 +35,82 @@ export const getSpeakerByAssistant = (assistantName: string): string => {
   }
 }
 
-// VOICEVOX APIを使用して音声を再生する関数
+// 音声プールシステムを使用してリアルタイム音声再生する関数
+export const playVoiceWithAudioPool = async (
+  text: string,
+  speaker: string,
+  onStart?: () => void,
+  onEnd?: () => void
+): Promise<void> => {
+  try {
+    const audioManager = AudioManager.getInstance()
+    
+    // 音声許可がない場合は従来の方法を使用
+    if (!audioManager.checkAudioPermission()) {
+      return playVoiceWithVOICEVOX(text, speaker, onStart, onEnd)
+    }
+
+    // Azure OpenAI TTSを使用して音声を生成
+    const blobData = await generateSpeechWithAzureOpenAI(text, speaker)
+    const blobUrl = URL.createObjectURL(blobData)
+
+    // プールからaudio要素を取得
+    const audio = audioManager.getPooledAudioElement()
+    
+    if (!audio) {
+      // プールが空の場合は従来の方法を使用
+      console.warn('Audio pool is empty, falling back to regular method')
+      URL.revokeObjectURL(blobUrl)
+      return playVoiceWithVOICEVOX(text, speaker, onStart, onEnd)
+    }
+
+    return new Promise((resolve, reject) => {
+      // プールされたaudio要素を使用
+      audio.src = blobUrl
+      audio.volume = 1.0
+      audio.muted = false
+
+      const handlePlay = () => {
+        console.log(`Playing voice with pooled audio for speaker ${speaker}`)
+        onStart?.()
+      }
+
+      const handleEnded = () => {
+        audio.removeEventListener('play', handlePlay)
+        audio.removeEventListener('ended', handleEnded)
+        audio.removeEventListener('error', handleError)
+        // ObjectURLのクリーンアップ
+        URL.revokeObjectURL(blobUrl)
+        // audio要素は再利用のためプールに残す
+        audio.src = ''
+        onEnd?.()
+        resolve()
+      }
+
+      const handleError = (error: any) => {
+        console.error('Pooled audio playback error:', error)
+        audio.removeEventListener('play', handlePlay)
+        audio.removeEventListener('ended', handleEnded)
+        audio.removeEventListener('error', handleError)
+        URL.revokeObjectURL(blobUrl)
+        audio.src = ''
+        onEnd?.()
+        reject(error)
+      }
+
+      audio.addEventListener('play', handlePlay, { once: true })
+      audio.addEventListener('ended', handleEnded, { once: true })
+      audio.addEventListener('error', handleError, { once: true })
+
+      audio.play().catch(handleError)
+    })
+  } catch (error) {
+    console.error('Voice playback error:', error)
+    throw error
+  }
+}
+
+// VOICEVOX APIを使用して音声を再生する関数（従来の方法）
 export const playVoiceWithVOICEVOX = async (
   text: string,
   speaker: string,
@@ -70,9 +145,6 @@ export const playVoiceWithVOICEVOX = async (
       userAgent: navigator.userAgent
     })
 
-    // iOSの場合はプロキシ経由、それ以外は直接アクセス
-    let audioUrl: string
-
     // Azure OpenAI TTSを使用して音声を生成
     const blobData = await generateSpeechWithAzureOpenAI(text, speaker)
 
@@ -86,7 +158,7 @@ export const playVoiceWithVOICEVOX = async (
         audioElement.id = "voicevox-audio"
         audioElement.src = blobUrl
         audioElement.controls = false
-        audioElement.muted = true
+        audioElement.muted = false
         audioElement.autoplay = true
         audioElement.volume = 1.0
 
@@ -158,7 +230,7 @@ export const playVoiceWithVOICEVOX = async (
   }
 }
 
-// 複数のメッセージを順次音声再生する関数
+// 複数のメッセージを順次音声再生する関数（音声プール対応）
 export const playAssistantMessages = async (
   messages: ConversationLog[],
   onSpeakerStart?: (assistantId: string) => void,
@@ -168,7 +240,7 @@ export const playAssistantMessages = async (
     if (message.role === 'assistant' && message.speaker && message.content) {
       try {
         const speaker = getSpeakerByAssistant(message.speaker.name)
-        await playVoiceWithVOICEVOX(
+        await playVoiceWithAudioPool(
           message.content,
           speaker,
           () => onSpeakerStart?.(message.speaker!.id),
@@ -183,139 +255,7 @@ export const playAssistantMessages = async (
   }
 }
 
-// 保存済み音声データから音声を再生する関数（音声プールシステムを使用）
-export const playStoredAudioWithPool = async (
-  audioData: string,
-  onStart?: () => void,
-  onEnd?: () => void
-): Promise<void> => {
-  return new Promise((resolve, reject) => {
-    try {
-      const audioManager = AudioManager.getInstance()
-      
-      // 音声許可がない場合は通常のaudio要素を使用
-      if (!audioManager.checkAudioPermission()) {
-        const audio = new Audio(audioData)
-        audio.preload = 'metadata'
-        
-        const handlePlay = () => onStart?.()
-        const handleEnded = () => {
-          onEnd?.()
-          resolve()
-        }
-        const handleError = (error: any) => {
-          onEnd?.()
-          reject(error)
-        }
-        
-        audio.addEventListener('play', handlePlay)
-        audio.addEventListener('ended', handleEnded)
-        audio.addEventListener('error', handleError)
-        
-        return audio.play().catch(handleError)
-      }
-      
-      // プールからaudio要素を取得
-      const audio = audioManager.getPooledAudioElement()
-      
-      if (!audio) {
-        // プールが空の場合は新しいaudio要素を作成
-        console.warn('Audio pool is empty, creating new audio element')
-        const newAudio = new Audio(audioData)
-        newAudio.preload = 'metadata'
-        
-        const handlePlay = () => onStart?.()
-        const handleEnded = () => {
-          onEnd?.()
-          resolve()
-        }
-        const handleError = (error: any) => {
-          onEnd?.()
-          reject(error)
-        }
-        
-        newAudio.addEventListener('play', handlePlay)
-        newAudio.addEventListener('ended', handleEnded)
-        newAudio.addEventListener('error', handleError)
-        
-        return newAudio.play().catch(handleError)
-      }
-      
-      // プールされたaudio要素を使用
-      audio.src = audioData
-      
-      const handlePlay = () => {
-        console.log('Playing audio with pooled element')
-        onStart?.()
-      }
-      
-      const handleEnded = () => {
-        audio.removeEventListener('play', handlePlay)
-        audio.removeEventListener('ended', handleEnded)
-        audio.removeEventListener('error', handleError)
-        // audio要素は再利用のためプールに残す
-        audio.src = '' // ソースだけクリア
-        onEnd?.()
-        resolve()
-      }
-      
-      const handleError = (error: any) => {
-        console.error('Pooled audio playback error:', error)
-        audio.removeEventListener('play', handlePlay)
-        audio.removeEventListener('ended', handleEnded)
-        audio.removeEventListener('error', handleError)
-        audio.src = ''
-        onEnd?.()
-        reject(error)
-      }
-      
-      audio.addEventListener('play', handlePlay, { once: true })
-      audio.addEventListener('ended', handleEnded, { once: true })
-      audio.addEventListener('error', handleError, { once: true })
-      
-      audio.play().catch(handleError)
-    } catch (error) {
-      console.error('Failed to play audio with pool:', error)
-      reject(error)
-    }
-  })
-}
 
-// 複数のメッセージを順次音声再生する関数（保存済み音声データを使用、音声プール対応）
-export const playStoredAssistantMessages = async (
-  messages: ConversationLog[],
-  onSpeakerStart?: (assistantId: string) => void,
-  onSpeakerEnd?: (assistantId: string) => void
-): Promise<void> => {
-  for (const message of messages) {
-    if (message.role === 'assistant' && message.speaker && message.audioData) {
-      try {
-        await playStoredAudioWithPool(
-          message.audioData,
-          () => onSpeakerStart?.(message.speaker!.id),
-          () => onSpeakerEnd?.(message.speaker!.id)
-        )
-      } catch (error) {
-        console.error(`Failed to play stored audio for ${message.speaker.name}:`, error)
-        // Continue with next message even if one fails
-        onSpeakerEnd?.(message.speaker.id)
-      }
-    }
-  }
-}
-
-// 音声再生を安全に実行する関数（保存済み音声データを使用）
-export const safePlayStoredAssistantMessages = (
-  messages: ConversationLog[],
-  onSpeakerStart?: (assistantId: string) => void,
-  onSpeakerEnd?: (assistantId: string) => void
-): void => {
-  if (messages.length > 0) {
-    playStoredAssistantMessages(messages, onSpeakerStart, onSpeakerEnd).catch((error) => {
-      console.error("Stored voice playback failed:", error)
-    })
-  }
-}
 
 // 音声再生を安全に実行する関数（エラーハンドリング付き）
 export const safePlayAssistantMessages = (
