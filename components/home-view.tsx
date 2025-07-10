@@ -69,33 +69,44 @@ export function HomeView({
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-8">
-        <AssistantAvatars
-          assistants={assistants}
-          currentSpeakingAssistant={currentSpeakingAssistant}
-        />
+      <div className="flex-1 flex flex-col items-center justify-center p-6 md:p-8">
+        {/* Enhanced mobile display for assistants */}
+        <div className="w-full flex justify-center">
+          <AssistantAvatars
+            assistants={assistants}
+            currentSpeakingAssistant={currentSpeakingAssistant}
+          />
+        </div>
 
-        <div className={`mt-6 md:mt-8 mb-6 md:mb-8 text-center text-sm md:text-2xl ${isRecording ? "text-red-500" : isReady ? "text-green-500" : "text-blue-500"}`}>
-          {/* {isRecording ? "🎙️録音中..." : isReady ? "📢準備完了" : "処理中..."} */}
+        {/* Enhanced status display for mobile */}
+        <div className={`mt-8 md:mt-8 mb-8 md:mb-8 text-center text-xl md:text-2xl font-semibold ${isRecording ? "text-red-500" : isReady ? "text-green-500" : "text-blue-500"}`}>
           {isRecording ? (
-            <div className="flex gap-1">
-              <Activity className="size-auto" />
-              <div>録音中...</div>
+            <div className="flex items-center justify-center gap-3">
+              <Activity className="w-6 h-6 md:w-8 md:h-8 animate-pulse" />
+              <div className="text-xl md:text-2xl">録音中...</div>
             </div>
           ) : isReady ? (
-            <div className="flex gap-1">
-              <Check className="size-auto" />
-              <div>準備完了！</div>
+            <div className="flex items-center justify-center gap-3">
+              <Check className="w-6 h-6 md:w-8 md:h-8" />
+              <div className="text-xl md:text-2xl">準備完了！</div>
             </div>
           ) : (
-            <div className="flex gap-1">
-              <Loader className="size-auto" />
-              <div>処理中...</div>
+            <div className="flex items-center justify-center gap-3">
+              <Loader className="w-6 h-6 md:w-8 md:h-8 animate-spin" />
+              <div className="text-xl md:text-2xl">処理中...</div>
             </div>
-          )
-          }
-
+          )}
         </div>
+
+        {/* Additional mobile enhancement hint */}
+        {!conversationLog.length && (
+          <div className="text-center text-gray-500 text-sm md:text-base max-w-md px-4">
+            <p className="leading-relaxed">
+              AIアシスタントと自然な対話を始めましょう。<br className="hidden sm:block" />
+              下部の入力エリアからメッセージを送信できます。
+            </p>
+          </div>
+        )}
       </div>
     </div>
   )
