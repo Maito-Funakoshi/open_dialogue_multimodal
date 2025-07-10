@@ -114,12 +114,18 @@ async function chatCompletions(
     messages: any[],
     altOut: string
 ): Promise<string> {
+    const apiCallStart = performance.now()
+    console.log(`🌐 [API] Starting chat completion - Model: ${model}, Messages: ${messages.length}`)
     try {
         const response = await client.chat.completions.create({model, messages});
+        const apiCallTime = performance.now() - apiCallStart
         const reply = response.choices[0]?.message?.content;
+        console.log(`🌐 [API] Chat completion successful: ${apiCallTime.toFixed(2)}ms`)
+        console.log(`📏 [API] Response length: ${reply?.length || 0} characters`)
         return reply || altOut;
     } catch (error: any) {
-        console.error(`Azure OpenAI API エラーが発生しました: ${error}`);
+        const apiCallTime = performance.now() - apiCallStart
+        console.error(`❌ [API] Azure OpenAI API エラー (${apiCallTime.toFixed(2)}ms): ${error}`);
         return altOut;
     }
 }
@@ -131,6 +137,9 @@ async function makeResponse(
     conversationLog: any[],
     userInput?: string
 ): Promise<string> {
+    console.log(`⚙️ [MAKE-RESPONSE] Starting message construction`)
+    const constructStart = performance.now()
+    
     const messages = [
         ...ASSISTANTS.map((assistant, i) => ({
             role: "system",
@@ -145,12 +154,19 @@ async function makeResponse(
         messages.push({ role: "user", content: userInput });
     }
 
+    const constructTime = performance.now() - constructStart
+    console.log(`⚙️ [MAKE-RESPONSE] Message construction: ${constructTime.toFixed(2)}ms (${messages.length} total messages)`)
+    console.log(`📝 [MAKE-RESPONSE] User input provided: ${!!userInput}`)
+
     const reply = await chatCompletions(client, AZURE_DEPLOYMENT_NAME, messages, "：");
     return reply;
 }
 
 // 話者を推測する関数
 async function suggestSpeaker(client: AzureOpenAI, input: string): Promise<string> {
+    console.log(`🎭 [SUGGEST-SPEAKER] Inferring speaker for: "${input.substring(0, 50)}..."`)
+    const suggestStart = performance.now()
+    
     const decisionExamples = `
         入力が「僕ですか？最近は趣味のマラソンを頑張ってるんです！自然の中を走れると、頭がスッキリします。」の場合：
             一人称が「僕」でありマラソンを趣味にしているので話者は${ASSISTANTS[2].name}と分かる。よって出力は「${ASSISTANTS[2].name}」。
@@ -178,6 +194,8 @@ async function suggestSpeaker(client: AzureOpenAI, input: string): Promise<strin
     ];
 
     const speaker = await chatCompletions(client, AZURE_DEPLOYMENT_NAME, messages, "");
+    const suggestTime = performance.now() - suggestStart
+    console.log(`🎭 [SUGGEST-SPEAKER] Speaker inference completed: ${suggestTime.toFixed(2)}ms - Result: "${speaker}"`)
     return speaker;
 }
 
@@ -188,16 +206,29 @@ async function fixComments(
     reply: string,
     conversationLog: any[]
 ): Promise<string> {
+    console.log(`🔧 [FIX-COMMENTS] Starting comment processing`)
+    const fixStart = performance.now()
+    
     let results: string = "";
-
     conversationLog.push({ role: "user", content: userInput });
 
+    const splitStart = performance.now()
     const newLog = reply.split("\n");
-    for (const remark of newLog) {
+    console.log(`📄 [FIX-COMMENTS] Split into ${newLog.length} lines: ${(performance.now() - splitStart).toFixed(2)}ms`)
+    
+    let speakerInferenceCount = 0
+    let speakerInferenceTime = 0
+    
+    for (let i = 0; i < newLog.length; i++) {
+        const remark = newLog[i]
+        
         // 空行は考慮しない
         if (!remark) {
             continue;
         }
+
+        console.log(`🔍 [FIX-COMMENTS] Processing line ${i + 1}: "${remark.substring(0, 30)}..."`)
+        const lineStart = performance.now()
 
         let parts: string[];
         let name: string;
@@ -215,11 +246,19 @@ async function fixComments(
         if (parts.length === 2 && ASSISTANTS.some(a => a.name === parts[0])) {
             name = parts[0];
             content = parts[1];
+            console.log(`✅ [FIX-COMMENTS] Speaker found directly: ${name}`)
         } else {
             // 話者が直接書かれていないときはremarkからsuggest_speakerで推測する
+            console.log(`🎭 [FIX-COMMENTS] Need to infer speaker for: "${remark.substring(0, 30)}..."`)
+            const inferStart = performance.now()
             name = await suggestSpeaker(client, remark);
+            const inferTime = performance.now() - inferStart
+            speakerInferenceTime += inferTime
+            speakerInferenceCount++
+            
             name = name.trim().replace(/[「」 　]/g, "");
             content = parts.length === 2 ? parts[1] : remark;
+            console.log(`🎭 [FIX-COMMENTS] Speaker inferred: ${name} (${inferTime.toFixed(2)}ms)`)
         }
 
         if (content.startsWith("「") && content.endsWith("」")) {
@@ -233,7 +272,16 @@ async function fixComments(
 
         const result = name + "：" + content + "\n"
         results += result;
+        
+        const lineTime = performance.now() - lineStart
+        console.log(`⏱️ [FIX-COMMENTS] Line ${i + 1} processed: ${lineTime.toFixed(2)}ms`)
     }
+    
+    const fixTime = performance.now() - fixStart
+    console.log(`✅ [FIX-COMMENTS] Comment processing completed: ${fixTime.toFixed(2)}ms`)
+    console.log(`📊 [FIX-COMMENTS] Speaker inferences: ${speakerInferenceCount} calls, ${speakerInferenceTime.toFixed(2)}ms total`)
+    console.log(`📝 [FIX-COMMENTS] Final results length: ${results.length} characters`)
+    
     return results;
 }
 
@@ -245,6 +293,10 @@ export async function generateOpenAIResponse(
     userName: string = USER,
     userGender: string = GENDER
 ): Promise<string> {
+    console.log(`🔧 [OPENAI] Starting generateOpenAIResponse - Reflecting: ${isReflecting}`)
+    const totalStartTime = performance.now()
+
+    const clientInitStart = performance.now()
     const client = new AzureOpenAI({
         apiKey: AZURE_OPENAI_API_KEY,
         baseURL: `${AZURE_OPENAI_ENDPOINT}`,
@@ -254,8 +306,10 @@ export async function generateOpenAIResponse(
         },
         dangerouslyAllowBrowser: true
     });
+    console.log(`⚙️ [OPENAI] Client initialization: ${(performance.now() - clientInitStart).toFixed(2)}ms`)
 
     // チャットモードをデフォルトで設定
+    const promptStart = performance.now()
     let count = 1;
     let prompt = createChatPrompt(userName, userGender);
     
@@ -263,29 +317,57 @@ export async function generateOpenAIResponse(
         count = REFLECTING_CONVERSATION_COUNT;
         prompt = createReflectingPrompt(userName, userGender);
     }
+    console.log(`📝 [OPENAI] Prompt generation: ${(performance.now() - promptStart).toFixed(2)}ms`)
 
     // ConversationLogを適切な形式に変換
+    const formatStart = performance.now()
     const formattedLog = conversationLog.map(log => ({
         role: log.role,
         content: log.content,
         ...(log.speaker && { name: NAME_INDEX[log.speaker.name] })
     }));
+    console.log(`🔄 [OPENAI] Log formatting (${conversationLog.length} messages): ${(performance.now() - formatStart).toFixed(2)}ms`)
 
     let allResponses = "";
+    let totalApiTime = 0
+    let totalParsingTime = 0
 
+    console.log(`🔄 [OPENAI] Starting ${count} iteration(s) of response generation`)
     for (let i = 0; i < count; i++) {
+        console.log(`🔄 [OPENAI] --- Iteration ${i + 1}/${count} ---`)
+        const iterationStart = performance.now()
+        
         const sentUserInput = i === 0 ? userInput : undefined;
+        
+        const makeResponseStart = performance.now()
         const comments = await makeResponse(client, prompt, formattedLog, sentUserInput);
+        const makeResponseTime = performance.now() - makeResponseStart
+        totalApiTime += makeResponseTime
+        console.log(`🤖 [OPENAI] makeResponse iteration ${i + 1}: ${makeResponseTime.toFixed(2)}ms`)
+        
+        const fixCommentsStart = performance.now()
         const remarks = await fixComments(client, userInput, comments, formattedLog);
+        const fixCommentsTime = performance.now() - fixCommentsStart
+        totalParsingTime += fixCommentsTime
+        console.log(`🔧 [OPENAI] fixComments iteration ${i + 1}: ${fixCommentsTime.toFixed(2)}ms`)
 
         // レスポンスを蓄積
         if (allResponses) allResponses += "\n";
         allResponses += remarks;
+        
+        const iterationTime = performance.now() - iterationStart
+        console.log(`⏱️ [OPENAI] Iteration ${i + 1} total: ${iterationTime.toFixed(2)}ms`)
     }
     
     if (allResponses.endsWith("\n")) {
         allResponses = allResponses.slice(0, -1);
-      }
+    }
+    
+    const totalTime = performance.now() - totalStartTime
+    console.log(`✅ [OPENAI] generateOpenAIResponse completed: ${totalTime.toFixed(2)}ms`)
+    console.log(`📊 [OPENAI] Breakdown - API calls: ${totalApiTime.toFixed(2)}ms, Parsing: ${totalParsingTime.toFixed(2)}ms`)
+    console.log(`📄 [OPENAI] Final response length: ${allResponses.length} characters`)
+    
     return allResponses;
 }
 
@@ -295,13 +377,19 @@ export async function generateSpeechWithAzureOpenAI(
     speaker: string,
     instructions: string = "日本人らしい発声を心がけてください。"
 ): Promise<Blob> {
+    console.log(`🎵 [TTS] Starting speech generation - Speaker: ${speaker}, Text: "${text.substring(0, 30)}..."`)
+    const ttsStartTime = performance.now()
+
+    const clientInitStart = performance.now()
     const client = new AzureOpenAI({
         baseURL: AZURE_OPENAI_TTS_ENDPOINT,
         apiKey: AZURE_OPENAI_TTS_API_KEY,
         defaultQuery: { 'api-version': AZURE_OPENAI_TTS_API_VERSION },
         dangerouslyAllowBrowser: true
     });
+    console.log(`⚙️ [TTS] TTS Client initialization: ${(performance.now() - clientInitStart).toFixed(2)}ms`)
 
+    const apiCallStart = performance.now()
     const response = await client.audio.speech.create({
         model: AZURE_OPENAI_TTS_DEPLOYMENT_NAME,
         voice: speaker,
@@ -309,8 +397,70 @@ export async function generateSpeechWithAzureOpenAI(
         instructions: instructions,
         input: text,
     });
+    const apiCallTime = performance.now() - apiCallStart
+    console.log(`🌐 [TTS] TTS API call: ${apiCallTime.toFixed(2)}ms`)
 
     // Blobデータとして取得
+    const blobStart = performance.now()
     const blobData = await response.blob();
+    const blobTime = performance.now() - blobStart
+    console.log(`📦 [TTS] Blob conversion: ${blobTime.toFixed(2)}ms`)
+    
+    const totalTtsTime = performance.now() - ttsStartTime
+    console.log(`✅ [TTS] Speech generation completed: ${totalTtsTime.toFixed(2)}ms`)
+    console.log(`📊 [TTS] Breakdown - API: ${apiCallTime.toFixed(2)}ms, Blob: ${blobTime.toFixed(2)}ms`)
+    console.log(`🗣️ [TTS] Generated audio size: ${blobData.size} bytes`)
+    
     return blobData;
+}
+
+// 複数のTTS音声を並列生成する関数
+export async function generateMultipleSpeechWithAzureOpenAI(
+    speechRequests: Array<{
+        text: string;
+        speaker: string;
+        instructions?: string;
+    }>
+): Promise<Array<{ blob: Blob; index: number }>> {
+    console.log(`🎯 [PARALLEL-TTS] Starting parallel TTS generation for ${speechRequests.length} requests`);
+    const parallelStart = performance.now();
+
+    try {
+        // 全ての音声生成を並列実行
+        const speechPromises = speechRequests.map(async (request, index) => {
+            console.log(`🔄 [PARALLEL-TTS] Starting TTS ${index + 1}: ${request.speaker} - "${request.text.substring(0, 30)}..."`);
+            const requestStart = performance.now();
+            
+            try {
+                const blob = await generateSpeechWithAzureOpenAI(
+                    request.text,
+                    request.speaker,
+                    request.instructions || "日本人らしい発声を心がけてください。"
+                );
+                
+                const requestTime = performance.now() - requestStart;
+                console.log(`✅ [PARALLEL-TTS] TTS ${index + 1} completed: ${requestTime.toFixed(2)}ms`);
+                
+                return { blob, index };
+            } catch (error) {
+                const requestTime = performance.now() - requestStart;
+                console.error(`❌ [PARALLEL-TTS] TTS ${index + 1} failed (${requestTime.toFixed(2)}ms):`, error);
+                throw error;
+            }
+        });
+
+        // 全ての音声生成の完了を待機
+        const results = await Promise.all(speechPromises);
+        
+        const parallelTime = performance.now() - parallelStart;
+        console.log(`✅ [PARALLEL-TTS] All parallel TTS generation completed: ${parallelTime.toFixed(2)}ms`);
+        console.log(`⚡ [PARALLEL-TTS] Average time per TTS: ${(parallelTime / speechRequests.length).toFixed(2)}ms`);
+        console.log(`🚀 [PARALLEL-TTS] Speedup vs sequential: ~${speechRequests.length}x faster`);
+        
+        return results;
+    } catch (error) {
+        const parallelTime = performance.now() - parallelStart;
+        console.error(`❌ [PARALLEL-TTS] Parallel TTS generation failed (${parallelTime.toFixed(2)}ms):`, error);
+        throw error;
+    }
 }
