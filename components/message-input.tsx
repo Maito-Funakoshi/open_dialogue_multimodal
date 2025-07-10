@@ -95,16 +95,9 @@ export function MessageInput({
   const handleSendMessage = async () => {
     if (!message.trim() || isLoading) return
 
-    console.log(`🔄 [MESSAGE-INPUT] Starting handleSendMessage for: "${message.substring(0, 30)}..."`)
-    const overallStartTime = performance.now()
-    let responseGenTime = 0
-    let parseTime = 0
-
     // iOS向けのオーディオコンテキスト解除
-    const audioInitStart = performance.now()
     const audioManager = AudioManager.getInstance()
     await audioManager.handleUserInteraction()
-    console.log(`🎵 [AUDIO] Audio context initialization: ${(performance.now() - audioInitStart).toFixed(2)}ms`)
 
     // Stop recording if active
     if (isRecording && recognition) {
@@ -116,50 +109,30 @@ export function MessageInput({
     setIsReady(false)
 
     // Add user message to log
-    const logUpdateStart = performance.now()
     let newLog = addUserMessage(conversationLog, message)
     setConversationLog(newLog)
-    console.log(`💾 [STATE] User message log update: ${(performance.now() - logUpdateStart).toFixed(2)}ms`)
 
     try {
       // Call OpenAI API to generate assistant responses
-      console.log(`🤖 [API] Starting OpenAI response generation...`)
-      const responseGenStart = performance.now()
       const response = await generateOpenAIResponse(message, newLog, false, userName, userGender)
-      responseGenTime = performance.now() - responseGenStart
-      console.log(`🤖 [API] OpenAI response generation completed: ${responseGenTime.toFixed(2)}ms`)
-      console.log(`📝 [API] Generated response length: ${response.length} characters`)
 
       // Parse and add assistant responses
-      const parseStart = performance.now()
       const assistantMessages = parseAssistantResponse(response, assistants)
-      parseTime = performance.now() - parseStart
-      console.log(`📋 [PARSE] Response parsing completed: ${parseTime.toFixed(2)}ms`)
-      console.log(`🗣️ [PARSE] Parsed ${assistantMessages.length} assistant messages`)
 
-      const stateUpdateStart = performance.now()
       let updatedLog = [...newLog, ...assistantMessages]
       setConversationLog(updatedLog)
       setLatestResponse(response)
-      console.log(`💾 [STATE] Assistant messages log update: ${(performance.now() - stateUpdateStart).toFixed(2)}ms`)
 
       // 音声再生を実行（リアルタイム生成）
-      console.log(`🎵 [VOICE] Starting voice playback for ${assistantMessages.length} messages...`)
-      const voicePlayStart = performance.now()
       safePlayAssistantMessages(
         assistantMessages,
         (assistantId) => setCurrentSpeakingAssistant?.(assistantId),
         (assistantId) => setCurrentSpeakingAssistant?.(null)
       )
-      console.log(`🎵 [VOICE] Voice playback initiated: ${(performance.now() - voicePlayStart).toFixed(2)}ms`)
       
     } catch (error) {
-      console.error("❌ [ERROR] Error generating response:", error)
+      console.error("Error generating response:", error)
     } finally {
-      const overallTime = performance.now() - overallStartTime
-      console.log(`✅ [COMPLETE] Total handleSendMessage time: ${overallTime.toFixed(2)}ms`)
-      console.log(`📊 [SUMMARY] Breakdown - API: ${responseGenTime.toFixed(2)}ms, Parse: ${parseTime.toFixed(2)}ms, Total: ${overallTime.toFixed(2)}ms`)
-      
       setIsLoading(false)
       setIsReady(true)
       setMessage("")
@@ -197,16 +170,9 @@ export function MessageInput({
   const startReflecting = async () => {
     if (isLoading) return
 
-    console.log(`🔄 [REFLECTING] Starting reflecting mode`)
-    const reflectingStartTime = performance.now()
-    let responseGenTime = 0
-    let parseTime = 0
-
     // iOS向けのオーディオコンテキスト解除
-    const audioInitStart = performance.now()
     const audioManager = AudioManager.getInstance()
     await audioManager.handleUserInteraction()
-    console.log(`🎵 [REFLECTING] Audio context initialization: ${(performance.now() - audioInitStart).toFixed(2)}ms`)
 
     // Stop recording if active
     if (isRecording && recognition) {
@@ -221,36 +187,22 @@ export function MessageInput({
     setIsReady(false)
 
     // Add user message to log
-    const logUpdateStart = performance.now()
     let newLog = addUserMessage(conversationLog, reflectingMessage)
     setConversationLog(newLog)
-    console.log(`💾 [REFLECTING] User message log update: ${(performance.now() - logUpdateStart).toFixed(2)}ms`)
 
     try {
       setIsReflecting(true)
 
       // Add reflecting started message
-      const systemMsgStart = performance.now()
       newLog = addSystemMessage(newLog, "----- Reflecting Started -----")
       setConversationLog(newLog)
-      console.log(`💾 [REFLECTING] System message added: ${(performance.now() - systemMsgStart).toFixed(2)}ms`)
 
       // Call OpenAI API to generate assistant responses
-      console.log(`🤖 [REFLECTING] Starting OpenAI reflecting response generation...`)
-      const responseGenStart = performance.now()
       const response = await generateOpenAIResponse(reflectingMessage, newLog, true, userName, userGender)
-      responseGenTime = performance.now() - responseGenStart
-      console.log(`🤖 [REFLECTING] OpenAI reflecting response generation completed: ${responseGenTime.toFixed(2)}ms`)
-      console.log(`📝 [REFLECTING] Generated reflecting response length: ${response.length} characters`)
 
       // Parse and add assistant responses
-      const parseStart = performance.now()
       const assistantMessages = parseAssistantResponse(response, assistants)
-      parseTime = performance.now() - parseStart
-      console.log(`📋 [REFLECTING] Response parsing completed: ${parseTime.toFixed(2)}ms`)
-      console.log(`🗣️ [REFLECTING] Parsed ${assistantMessages.length} reflecting messages`)
 
-      const stateUpdateStart = performance.now()
       let updatedLog = [...newLog, ...assistantMessages]
 
       // Add reflecting ended message
@@ -258,25 +210,17 @@ export function MessageInput({
 
       setConversationLog(updatedLog)
       setLatestResponse(response)
-      console.log(`💾 [REFLECTING] Final log update: ${(performance.now() - stateUpdateStart).toFixed(2)}ms`)
 
       // 音声再生を実行（リアルタイム生成）
-      console.log(`🎵 [REFLECTING] Starting reflecting voice playback for ${assistantMessages.length} messages...`)
-      const voicePlayStart = performance.now()
       safePlayAssistantMessages(
         assistantMessages,
         (assistantId) => setCurrentSpeakingAssistant?.(assistantId),
         (assistantId) => setCurrentSpeakingAssistant?.(null)
       )
-      console.log(`🎵 [REFLECTING] Reflecting voice playback initiated: ${(performance.now() - voicePlayStart).toFixed(2)}ms`)
       
     } catch (error) {
-      console.error("❌ [REFLECTING] Error generating reflecting response:", error)
+      console.error("Error generating reflecting response:", error)
     } finally {
-      const totalReflectingTime = performance.now() - reflectingStartTime
-      console.log(`✅ [REFLECTING] Reflecting mode completed: ${totalReflectingTime.toFixed(2)}ms`)
-      console.log(`📊 [REFLECTING] Summary - API: ${responseGenTime.toFixed(2)}ms, Parse: ${parseTime.toFixed(2)}ms, Total: ${totalReflectingTime.toFixed(2)}ms`)
-      
       setIsLoading(false)
       setIsReady(true)
     }
