@@ -42,7 +42,6 @@ export function ChatView({
   recognition,
   setRecognition
 }: ChatViewProps) {
-
   return (
     <div className="flex flex-col h-[84vh] bg-gray-50">
       {/* Header with Hamburger Menu */}

@@ -182,13 +182,13 @@ async function suggestSpeaker(client: AzureOpenAI, input: string): Promise<strin
 }
 
 // 会話ログを更新する関数
-async function updateLog(
+async function fixComments(
     client: AzureOpenAI,
     userInput: string,
     reply: string,
     conversationLog: any[]
-): Promise<any[]> {
-    const results: any[] = [];
+): Promise<string> {
+    let results: string = "";
 
     conversationLog.push({ role: "user", content: userInput });
 
@@ -228,11 +228,12 @@ async function updateLog(
 
         const nameIndex = NAME_INDEX[name] || "-1";
 
-        const result = { role: "assistant", name: nameIndex, content: content.trim() };
-        conversationLog.push(result);
-        results.push(result);
-    }
+        const log = { role: "assistant", name: nameIndex, content: content.trim() };
+        conversationLog.push(log);
 
+        const result = name + "：" + content + "\n"
+        results += result;
+    }
     return results;
 }
 
@@ -275,13 +276,16 @@ export async function generateOpenAIResponse(
     for (let i = 0; i < count; i++) {
         const sentUserInput = i === 0 ? userInput : undefined;
         const comments = await makeResponse(client, prompt, formattedLog, sentUserInput);
-        const remarks = await updateLog(client, userInput, comments, formattedLog);
+        const remarks = await fixComments(client, userInput, comments, formattedLog);
 
         // レスポンスを蓄積
         if (allResponses) allResponses += "\n";
-        allResponses += comments;
+        allResponses += remarks;
     }
-
+    
+    if (allResponses.endsWith("\n")) {
+        allResponses = allResponses.slice(0, -1);
+      }
     return allResponses;
 }
 
