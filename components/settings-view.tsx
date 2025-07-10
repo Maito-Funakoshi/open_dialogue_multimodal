@@ -125,189 +125,180 @@ export function SettingsView({
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">
-      {/* Header with Hamburger Menu */}
-      <div className="bg-white border-b border-gray-200 p-4 md:p-6 relative">
-        <SidebarTrigger className="absolute left-2 md:left-4 top-1/2 transform -translate-y-1/2" />
-        <h1 className="text-lg md:text-2xl font-bold text-center text-gray-800 px-12 lg:px-0">設定</h1>
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 p-3 relative">
+        <SidebarTrigger className="absolute left-2 top-1/2 transform -translate-y-1/2" />
+        <h1 className="text-xl font-bold text-center text-gray-800 px-12">設定</h1>
       </div>
 
-      {/* Settings Content */}
-      <div className="flex-1 overflow-auto p-3 md:p-6">
-        <div className="max-w-2xl mx-auto space-y-6 md:space-y-8">
-          {/* Current Settings Display */}
-          <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6 shadow-sm">
-            <div className="flex items-center gap-2 mb-4">
-              <User className="w-5 h-5 text-green-500" />
-              <h2 className="text-base md:text-lg font-semibold text-gray-800">現在の設定</h2>
+      {/* Content */}
+      <div className="flex-1 overflow-auto p-3">
+        <div className="max-w-2xl mx-auto space-y-3">
+          {/* Current Settings - Compact View */}
+          <div className="bg-white rounded-lg border border-gray-200 p-3 shadow-sm">
+            <div className="flex items-center gap-2 mb-2">
+              <User className="w-4 h-4 text-green-500" />
+              <h2 className="text-sm font-semibold text-gray-800">現在の設定</h2>
             </div>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                <span className="text-sm text-gray-600">お名前:</span>
-                <span className="text-sm font-medium text-gray-800">{userName}</span>
+            <div className="space-y-1">
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-gray-600">お名前:</span>
+                <span className="text-xs font-medium text-gray-800">{userName}</span>
               </div>
-              <div className="flex justify-between items-center py-2">
-                <span className="text-sm text-gray-600">性別:</span>
-                <span className="text-sm font-medium text-gray-800">{userGender}</span>
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-gray-600">性別:</span>
+                <span className="text-xs font-medium text-gray-800">{userGender}</span>
               </div>
             </div>
           </div>
 
-          {/* User Profile Settings */}
-          <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6 shadow-sm">
-            <div className="flex items-center gap-2 mb-4">
-              <UserPen className="w-5 h-5 text-blue-500" />
-              <h2 className="text-base md:text-lg font-semibold text-gray-800">ユーザープロフィール</h2>
+          {/* User Profile - Compact */}
+          <div className="bg-white rounded-lg border border-gray-200 p-3 shadow-sm">
+            <div className="flex items-center gap-2 mb-3">
+              <UserPen className="w-4 h-4 text-blue-500" />
+              <h2 className="text-sm font-semibold text-gray-800">ユーザープロフィール</h2>
             </div>
-            <p className="text-xs md:text-sm text-gray-600 mb-4 md:mb-6">
-              あなたの基本情報を設定してください。この情報はアシスタントとの会話で使用されます。
-            </p>
 
-            <div className="space-y-6">
+            <div className="space-y-3">
               {/* Name Input */}
-              <div className="space-y-2">
-                <label htmlFor="userName" className="block text-sm font-medium text-gray-700">
+              <div>
+                <label htmlFor="userName" className="block text-xs font-medium text-gray-700 mb-1">
                   お名前
                 </label>
                 <Input
                   id="userName"
                   value={tempUserName}
                   onChange={(e) => setTempUserName(e.target.value)}
-                  placeholder="お名前を入力してください"
-                  className="w-full"
+                  placeholder="お名前を入力"
+                  className="w-full h-8 text-sm"
                 />
               </div>
 
-              {/* Gender Selection */}
-              <div className="space-y-3">
-                <label className="block text-sm font-medium text-gray-700">性別</label>
-                <div className="space-y-2">
-                  <label className="flex items-center space-x-2 cursor-pointer">
+              {/* Gender Selection - Inline */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">性別</label>
+                <div className="flex gap-3">
+                  <label className="flex items-center space-x-1 cursor-pointer">
                     <input
                       type="radio"
                       name="gender"
                       value="男性"
                       checked={tempUserGender === "男性"}
                       onChange={(e) => setTempUserGender(e.target.value)}
-                      className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                      className="w-3 h-3"
                     />
-                    <span className="text-sm text-gray-700">男性</span>
+                    <span className="text-xs">男性</span>
                   </label>
-                  <label className="flex items-center space-x-2 cursor-pointer">
+                  <label className="flex items-center space-x-1 cursor-pointer">
                     <input
                       type="radio"
                       name="gender"
                       value="女性"
                       checked={tempUserGender === "女性"}
                       onChange={(e) => setTempUserGender(e.target.value)}
-                      className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                      className="w-3 h-3"
                     />
-                    <span className="text-sm text-gray-700">女性</span>
+                    <span className="text-xs">女性</span>
                   </label>
-                  <label className="flex items-center space-x-2 cursor-pointer">
+                  <label className="flex items-center space-x-1 cursor-pointer">
                     <input
                       type="radio"
                       name="gender"
                       value="未回答"
                       checked={tempUserGender === "未回答"}
                       onChange={(e) => setTempUserGender(e.target.value)}
-                      className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                      className="w-3 h-3"
                     />
-                    <span className="text-sm text-gray-700">未回答</span>
+                    <span className="text-xs">未回答</span>
                   </label>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Action Buttons */}
-          {hasChanges && (
-            <div className="flex flex-col sm:flex-row gap-3 justify-end">
-              <Button
-                variant="outline"
-                onClick={handleReset}
-                className="px-4 md:px-6 w-full sm:w-auto"
-              >
-                リセット
-              </Button>
-              <Button
-                onClick={handleSave}
-                className="px-4 md:px-6 bg-blue-500 hover:bg-blue-600 w-full sm:w-auto"
-              >
-                <Save className="w-4 h-4 mr-2" />
-                保存
-              </Button>
-            </div>
-          )}
-
-          {/* Audio Settings */}
-          <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6 shadow-sm">
-            <div className="flex items-center gap-2 mb-4">
-              <Volume2 className="w-5 h-5 text-purple-500" />
-              <h2 className="text-base md:text-lg font-semibold text-gray-800">音声設定</h2>
-            </div>
-            <p className="text-xs md:text-sm text-gray-600 mb-4 md:mb-6">
-              AIアシスタントの音声読み上げ機能を管理できます。
-            </p>
-
-            <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 bg-purple-50 border border-purple-200 rounded-lg">
-                <div>
-                  <h3 className="text-sm font-medium text-gray-800">音声自動再生</h3>
-                  <p className="text-xs text-gray-600 mt-1">
-                    現在の状態: {audioPermissionFlag ? "有効" : "無効"}
-                  </p>
-                </div>
+            {/* Action Buttons - Compact */}
+            {hasChanges && (
+              <div className="flex gap-2 mt-3">
                 <Button
-                  variant={audioPermissionFlag ? "outline" : "default"}
-                  onClick={handleToggleAudioPermission}
-                  disabled={isInitializingAudio}
-                  className="px-4 md:px-6 w-full sm:w-auto"
+                  variant="outline"
+                  onClick={handleReset}
+                  size="sm"
+                  className="flex-1 h-7 text-xs"
                 >
-                  {isInitializingAudio ? (
-                    <>処理中...</>
-                  ) : audioPermissionFlag ? (
-                    <>
-                      <VolumeX className="w-4 h-4 mr-2" />
-                      音声を無効にする
-                    </>
-                  ) : (
-                    <>
-                      <Volume2 className="w-4 h-4 mr-2" />
-                      音声を有効にする
-                    </>
-                  )}
+                  リセット
+                </Button>
+                <Button
+                  onClick={handleSave}
+                  size="sm"
+                  className="flex-1 h-7 text-xs bg-blue-500 hover:bg-blue-600"
+                >
+                  <Save className="w-3 h-3 mr-1" />
+                  保存
                 </Button>
               </div>
+            )}
+          </div>
+
+          {/* Audio Settings - Compact */}
+          <div className="bg-white rounded-lg border border-gray-200 p-3 shadow-sm">
+            <div className="flex items-center gap-2 mb-2">
+              <Volume2 className="w-4 h-4 text-purple-500" />
+              <h2 className="text-sm font-semibold text-gray-800">音声設定</h2>
+            </div>
+
+            <div className="flex items-center justify-between p-2 bg-purple-50 border border-purple-200 rounded">
+              <div>
+                <h3 className="text-xs font-medium text-gray-800">音声自動再生</h3>
+                <p className="text-xs text-gray-600">
+                  {audioPermissionFlag ? "有効" : "無効"}
+                </p>
+              </div>
+              <Button
+                variant={audioPermissionFlag ? "outline" : "default"}
+                onClick={handleToggleAudioPermission}
+                disabled={isInitializingAudio}
+                size="sm"
+                className="h-7 text-xs px-3"
+              >
+                {isInitializingAudio ? (
+                  "処理中..."
+                ) : audioPermissionFlag ? (
+                  <>
+                    <VolumeX className="w-3 h-3 mr-1" />
+                    無効にする
+                  </>
+                ) : (
+                  <>
+                    <Volume2 className="w-3 h-3 mr-1" />
+                    有効にする
+                  </>
+                )}
+              </Button>
             </div>
           </div>
 
-          {/* Data Management */}
-          <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6 shadow-sm">
-            <div className="flex items-center gap-2 mb-4">
-              <Database className="w-5 h-5 text-red-500" />
-              <h2 className="text-base md:text-lg font-semibold text-gray-800">データ管理</h2>
+          {/* Data Management - Compact */}
+          <div className="bg-white rounded-lg border border-gray-200 p-3 shadow-sm">
+            <div className="flex items-center gap-2 mb-2">
+              <Database className="w-4 h-4 text-red-500" />
+              <h2 className="text-sm font-semibold text-gray-800">データ管理</h2>
             </div>
-            <p className="text-xs md:text-sm text-gray-600 mb-4 md:mb-6">
-              保存されたデータを管理できます。削除したデータは復元できませんのでご注意ください。
-            </p>
 
-            <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-                <div>
-                  <h3 className="text-sm font-medium text-gray-800">対話履歴の削除</h3>
-                  <p className="text-xs text-gray-600 mt-1">
-                    これまでの全ての対話履歴を削除します
-                  </p>
-                </div>
-                <Button
-                  variant="destructive"
-                  onClick={handleClearConversationHistory}
-                  className="px-4 md:px-6 w-full sm:w-auto"
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  履歴を削除
-                </Button>
+            <div className="flex items-center justify-between p-2 bg-red-50 border border-red-200 rounded">
+              <div>
+                <h3 className="text-xs font-medium text-gray-800">対話履歴の削除</h3>
+                <p className="text-xs text-gray-600">
+                  全履歴を削除します
+                </p>
               </div>
+              <Button
+                variant="destructive"
+                onClick={handleClearConversationHistory}
+                size="sm"
+                className="h-7 text-xs px-3"
+              >
+                <Trash2 className="w-3 h-3 mr-1" />
+                削除
+              </Button>
             </div>
           </div>
         </div>
