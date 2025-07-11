@@ -59,6 +59,7 @@ export function MessageInput({
 }: MessageInputProps) {
   const [message, setMessage] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [finalTranscript, setFinalTranscript] = useState("") // 確定した文字起こしを保持
 
   // 音声入力の初期化
   useEffect(() => {
@@ -71,11 +72,33 @@ export function MessageInput({
         recognitionInstance.lang = "ja-JP"
 
         recognitionInstance.onresult = (event: any) => {
-          let transcript = ""
+          let interimTranscript = ""
+          let newFinalTranscript = ""
+          
+          // 結果を処理して、finalな結果とinterimな結果を分離
           for (let i = event.resultIndex; i < event.results.length; i++) {
-            transcript += event.results[i][0].transcript
+            const result = event.results[i]
+            if (result.isFinal) {
+              newFinalTranscript += result[0].transcript
+            } else {
+              interimTranscript += result[0].transcript
+            }
           }
-          setMessage(transcript)
+          
+          // finalな結果があれば、既存のfinalTranscriptに追加し、同時にメッセージも更新
+          if (newFinalTranscript) {
+            setFinalTranscript(prev => {
+              const updated = prev + newFinalTranscript
+              setMessage(updated + interimTranscript)
+              return updated
+            })
+          } else {
+            // interimな結果のみの場合は、現在のfinalTranscriptにinterimを追加して表示
+            setFinalTranscript(prev => {
+              setMessage(prev + interimTranscript)
+              return prev
+            })
+          }
         }
 
         recognitionInstance.onerror = (event: any) => {
@@ -85,6 +108,12 @@ export function MessageInput({
 
         recognitionInstance.onend = () => {
           setIsRecording(false)
+          // 音声認識が終了した時、finalTranscriptの内容をmessageに設定
+          // これにより、無音で自動終了した場合でも内容が保持される
+          setFinalTranscript(prev => {
+            setMessage(prev)
+            return prev
+          })
         }
 
         setRecognition(recognitionInstance)
@@ -136,6 +165,7 @@ export function MessageInput({
       setIsLoading(false)
       setIsReady(true)
       setMessage("")
+      setFinalTranscript("") // 送信後はfinalTranscriptもクリア
     }
   }
 
@@ -159,9 +189,16 @@ export function MessageInput({
     if (isRecording) {
       recognition.stop()
       setIsRecording(false)
+      // 録音終了時は、finalTranscriptの内容をmessageに設定（中間結果を除去）
+      setMessage(finalTranscript)
       handleSendMessage()
     } else {
-      setMessage("") // Clear previous message
+      // 録音開始時の処理
+      // 既存のメッセージがある場合は、それをfinalTranscriptに設定して継続
+      if (message.trim()) {
+        setFinalTranscript(message)
+      }
+      // 録音を開始（メッセージはクリアしない）
       recognition.start()
       setIsRecording(true)
     }
